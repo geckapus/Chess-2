@@ -17,6 +17,7 @@ public class ChessPiece : MonoBehaviour
     public bool canMove = true;
     public bool promoted = false;
     public bool isKing = false;
+    public int daysOnVacation = 0;
     public bool hasWall = false;
     public UIControl UIControl;
 
@@ -34,8 +35,8 @@ public class ChessPiece : MonoBehaviour
     }
     public string color;
 
-    public Sprite black_pawn, black_rook, black_knight, black_bishop, black_queen, black_king;
-    public Sprite white_pawn, white_rook, white_knight, white_bishop, white_queen, white_king;
+    public Sprite black_pawn, black_rook, black_knight, black_bishop, black_queen, black_king, black_knook;
+    public Sprite white_pawn, white_rook, white_knight, white_bishop, white_queen, white_king, white_knook;
     public Sprite wallSprite;
     /*private void Start()
     {
@@ -57,6 +58,7 @@ public class ChessPiece : MonoBehaviour
             case "black_knight": sr.sprite = black_knight; color = "black"; break;
             case "black_bishop": sr.sprite = black_bishop; color = "black"; break;
             case "black_queen": sr.sprite = black_queen; color = "black"; break;
+            case "black_knook": sr.sprite = black_knook; color = "black"; break;
             case "black_king":
                 sr.sprite = black_king; color = "black";
                 isKing = true; break;
@@ -66,6 +68,7 @@ public class ChessPiece : MonoBehaviour
             case "white_knight": sr.sprite = white_knight; color = "white"; break;
             case "white_bishop": sr.sprite = white_bishop; color = "white"; break;
             case "white_queen": sr.sprite = white_queen; color = "white"; break;
+            case "white_knook": sr.sprite = white_knook; color = "white"; break;
             case "white_king":
                 sr.sprite = white_king; color = "white";
                 isKing = true; break;
@@ -108,7 +111,7 @@ public class ChessPiece : MonoBehaviour
             Destroy(gameObject);
         }
     }
-    private bool CheckRook(int x, int y)
+    public bool CheckRook(int x, int y)
     {
         Controller sc = controller.GetComponent<Controller>();
         if (sc.PositionWithinBounds(x, y) && sc.GetPosition(x, y) != null)
@@ -217,6 +220,14 @@ public class ChessPiece : MonoBehaviour
                 LineMovePlate(0, 1);
                 LineMovePlate(-1, 0);
                 LineMovePlate(0, -1);
+                break;
+            case "black_knook":
+            case "white_knook":
+                LineMovePlate(1, 0);
+                LineMovePlate(0, 1);
+                LineMovePlate(-1, 0);
+                LineMovePlate(0, -1);
+                LMovePlate();
                 break;
             case "black_pawn":
                 PawnMovePlate(position.x, position.y - 1);
@@ -345,29 +356,26 @@ public class ChessPiece : MonoBehaviour
     {
         bool promote = false;
         Controller sc = controller.GetComponent<Controller>();
-        if (sc.PositionWithinBounds(x, y))
+        if (y == 0 || y == 7) promote = true;
+        if (sc.PositionWithinBounds(x, y) && sc.GetPosition(x, y) == null)
         {
-            if (y == 0 || y == 7) promote = true;
-            if (sc.GetPosition(x, y) == null)
+            if (sc.GetPosition(x, color == "white" ? y + 1 : y - 1) == null && firstMove)
             {
-                if (sc.GetPosition(x, color == "white" ? y + 1 : y - 1) == null && firstMove)
-                {
-                    MovePlateSpawn(x, color == "white" ? y + 1 : y - 1, false, "2squares");
-                }
-                MovePlateSpawn(x, y, false, promote ? "promote" : null);
+                MovePlateSpawn(x, color == "white" ? y + 1 : y - 1, false, "2squares");
             }
+            MovePlateSpawn(x, y, false, promote ? "promote" : null);
+        }
 
-            if (sc.PositionWithinBounds(x + 1, y) && sc.GetPosition(x + 1, y) != null && sc.GetPosition(x + 1, y).GetComponent<ChessPiece>().color != color)
-            {
-                if (sc.GetPosition(x + 1, y).GetComponent<ChessPiece>().color != "wall")
-                    MovePlateSpawn(x + 1, y, true, promote ? "promote" : null);
-            }
+        if (sc.PositionWithinBounds(x + 1, y) && sc.GetPosition(x + 1, y) != null && sc.GetPosition(x + 1, y).GetComponent<ChessPiece>().color != color)
+        {
+            if (sc.GetPosition(x + 1, y).GetComponent<ChessPiece>().color != "wall")
+                MovePlateSpawn(x + 1, y, true, promote ? "promote" : null);
+        }
 
-            if (sc.PositionWithinBounds(x - 1, y) && sc.GetPosition(x - 1, y) != null && sc.GetPosition(x - 1, y).GetComponent<ChessPiece>().color != color)
-            {
-                if (sc.GetPosition(x - 1, y).GetComponent<ChessPiece>().color != "wall")
-                    MovePlateSpawn(x - 1, y, true, promote ? "promote" : null);
-            }
+        if (sc.PositionWithinBounds(x - 1, y) && sc.GetPosition(x - 1, y) != null && sc.GetPosition(x - 1, y).GetComponent<ChessPiece>().color != color)
+        {
+            if (sc.GetPosition(x - 1, y).GetComponent<ChessPiece>().color != "wall")
+                MovePlateSpawn(x - 1, y, true, promote ? "promote" : null);
         }
     }
 

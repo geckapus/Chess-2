@@ -29,7 +29,7 @@ public class UIControl : MonoBehaviour
         "If you win a Chess 2 game without eating any piece, you get the true ending.",
         "If this rule is activated, the opposing player may analyze the current position on chess.com/analysis or lichess.org/analysis.",
         "If more than 3 pawns die on either side, start a communist revolution.",
-        "Add the spaces i4 and i5. When a piece enters one of these squares it goes on vacation. Pieces can come back from vacation at any time. Bishops cannot come back from vacation. If your king is on vacation for more than 3 consecutive turns he gets assassinated. At the start of your turn, for each piece you have on vacation you get +2 enjoyment. When a knight and a rook of the same colour are on vacation at the same time, they fuse into a knook."
+        "✅Add the spaces i4 and i5. When a piece enters one of these squares it goes on vacation. Pieces can come back from vacation at any time. Bishops cannot come back from vacation. If your king is on vacation for more than 3 consecutive turns he gets assassinated. At the start of your turn, for each piece you have on vacation you get +2 enjoyment. When a knight and a rook of the same colour are on vacation at the same time, they fuse into a knook."
         };
 
     private void Start()

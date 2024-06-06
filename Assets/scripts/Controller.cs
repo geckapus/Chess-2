@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -122,21 +123,54 @@ public class Controller : MonoBehaviour
         {
             if (piece != null)
             {
+                ChessPiece cp = piece.GetComponent<ChessPiece>();
                 if (settings["flip_board"] == "true")
                     StartCoroutine(MoveObject(piece, ChessPiece.RotateBoard(piece.transform.position), 0.3f));
                 if (piece.name == currentPlayer + "_enPassant")
                 {
                     Destroy(piece);
-                    SetPositionEmpty(piece.GetComponent<ChessPiece>().Position.x, piece.GetComponent<ChessPiece>().Position.y);
+                    SetPositionEmpty(cp.Position.x, cp.Position.y);
                 }
                 if (piece.name == "wall")
-                    piece.GetComponent<ChessPiece>().CheckWalls();
-                if (PositionOnVacation(piece.GetComponent<ChessPiece>().Position.x, piece.GetComponent<ChessPiece>().Position.y))
+                    cp.CheckWalls();
+                if (PositionOnVacation(cp.Position.x, cp.Position.y))
                 {
-                    if (currentPlayer == "black" && piece.GetComponent<ChessPiece>().color == "white")
+
+                    if (currentPlayer == "black" && cp.color == "white")
+                    {
                         whiteEnjoyment += 2;
-                    else if (currentPlayer == "white" && piece.GetComponent<ChessPiece>().color == "black")
+                        cp.daysOnVacation++;
+                    }
+                    else if (currentPlayer == "white" && cp.color == "black")
+                    {
                         blackEnjoyment += 2;
+                        cp.daysOnVacation++;
+                    }
+                    if (cp.name.Contains("king") && cp.daysOnVacation == 3)
+                    {
+                        uiControl.DisplayAlert(14);
+                        GameOver(cp.color == "black" ? "white" : "black");
+                    }
+                    if (cp.name.Contains("knight"))
+                    {
+                        if (cp.Position.y == 3 && cp.CheckRook(8, 4))
+                        {
+                            Destroy(board[8, 3]);
+                            Destroy(board[8, 4]);
+                            SetPositionEmpty(8, 4);
+                            SetPositionEmpty(8, 3);
+                            SetPosition(Create(cp.color + "_knook", 8, 3));
+                        }
+                        else if (cp.Position.y == 4 && cp.CheckRook(8, 3))
+                        {
+                            Destroy(board[8, 3]);
+                            Destroy(board[8, 4]);
+                            SetPositionEmpty(8, 4);
+                            SetPositionEmpty(8, 3);
+                            SetPosition(Create(cp.color + "_knook", 8, 4));
+                        }
+
+                    }
                 }
             }
         }
@@ -176,6 +210,7 @@ public class Controller : MonoBehaviour
 
     public void GameOver(string winner)
     {
+        gameOver = true;
         Debug.Log("Winner: " + winner);
         gameOverText.SetActive(true);
         gameOverText.transform.Find("Title").GetComponent<TextMeshProUGUI>().text = (winner == "white" ? "White" : "Black") + " Wins!";
@@ -217,6 +252,5 @@ public class Controller : MonoBehaviour
                 break;
         }
         gameOverText.transform.Find("Quote").GetComponent<TextMeshProUGUI>().text = "\"" + quote + "\"";
-        gameOver = true;
     }
 }
