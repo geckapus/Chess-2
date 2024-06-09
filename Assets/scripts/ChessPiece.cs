@@ -46,7 +46,10 @@ public class ChessPiece : MonoBehaviour
         controller = GameObject.FindGameObjectWithTag("GameController");
         UIControl = GameObject.FindGameObjectWithTag("Canvas").GetComponent<UIControl>();
     }*/
-
+    /// <summary>
+    /// Activates the chess piece by setting its sprite, color, and other properties based on its name.
+    /// </summary>
+    /// <param name="obj">The GameObject to activate.</param>
     public void Activate(GameObject obj)
     {
         controller = GameObject.FindGameObjectWithTag("GameController");
@@ -93,6 +96,9 @@ public class ChessPiece : MonoBehaviour
                 break;
         }
     }
+    /// <summary>
+    /// Updates the position of the cursor if it is not null.
+    /// </summary>
     void Update()
     {
         if (cursor != null)
@@ -102,6 +108,10 @@ public class ChessPiece : MonoBehaviour
         }
 
     }
+    /// <summary>
+    /// Checks if the chess piece (which must be a wall) is surrounded by rooks on both sides horizontally and vertically.
+    /// If not, the chess piece is removed from the board.
+    /// </summary>
     public void CheckWalls()
     {
         Controller sc = controller.GetComponent<Controller>();
@@ -114,6 +124,12 @@ public class ChessPiece : MonoBehaviour
             Destroy(gameObject);
         }
     }
+    /// <summary>
+    /// Checks if a given position contains a rook piece.
+    /// </summary>
+    /// <param name="x">The x-coordinate of the position to check.</param>
+    /// <param name="y">The y-coordinate of the position to check.</param>
+    /// <returns>Returns true if the position contains a rook piece, false otherwise.</returns>
     public bool CheckRook(int x, int y)
     {
         Controller sc = controller.GetComponent<Controller>();
@@ -125,6 +141,13 @@ public class ChessPiece : MonoBehaviour
 
         return false;
     }
+    /// <summary>
+    /// Checks if the given position contains a king of the specified color.
+    /// </summary>
+    /// <param name="x">The x-coordinate of the position to check.</param>
+    /// <param name="y">The y-coordinate of the position to check.</param>
+    /// <param name="color">The color of the king to check for.</param>
+    /// <returns>Returns true if the position contains a king of the specified color, false otherwise.</returns>
     public bool CheckKing(int x, int y, string color)
     {
         Controller sc = controller.GetComponent<Controller>();
@@ -136,7 +159,12 @@ public class ChessPiece : MonoBehaviour
 
         return false;
     }
-
+    /// <summary>
+    /// Sets the transform of the object based on the flip board setting and color.
+    /// If the flip board setting is true and the color is black, the transform position is set to the negated position minus 3.5f.
+    /// Otherwise, the transform position is set to the position minus 3.5f.
+    /// If the name of the object is "black_enPassant", the transform position is set based on the flip board setting. (This is done because I had no idea what else to do, as black en passants were not working.)
+    /// </summary>
     public void SetTransform()
     {
         if (GameObject.FindGameObjectWithTag("GameController").GetComponent<Controller>().settings["flip_board"] == "true" && color == "black")
@@ -158,12 +186,21 @@ public class ChessPiece : MonoBehaviour
 
         }
     }
-
+    /// <summary>
+    /// Rotates the board by flipping the x and y coordinates of the given position.
+    /// </summary>
+    /// <param name="position">The position to rotate.</param>
+    /// <returns>The rotated position.</returns>
     public static Vector3 RotateBoard(Vector3 position)
     {
         return new Vector3(-position.x, -position.y, position.z);
     }
-
+    /// <summary>
+    /// Handles the mouse down event for the chess piece.
+    /// If the current player is the same as the piece's color, and the game is not over, and the game is not paused,
+    /// destroy any existing move plates, instantiate a cursor piece at the current position, activate the cursor,
+    /// set the cursor's sprite color to semi-transparent, and initiate the move plates. THE CURSOR CURRENTLY HAS NO FUNCTIONALITY
+    /// </summary>
     private void OnMouseDown()
     {
         if (controller.GetComponent<Controller>().currentPlayer == color && !controller.GetComponent<Controller>().IsGameOver() && !controller.GetComponent<Controller>().isPaused)
@@ -177,11 +214,14 @@ public class ChessPiece : MonoBehaviour
             InitiateMovePlates();
         }
     }
-
     private void OnMouseUp()
     {
         Destroy(GameObject.FindGameObjectWithTag("cursor"));
     }
+    /// <summary>
+    /// Destroys all move plates in the scene, optionally destroying move indicators. Move indicators are purely visual, and are not used to move any pieces.
+    /// </summary>
+    /// <param name="destroyMoveIndicators">If true, move indicators will also be destroyed.</param>
     public static void DestroyMovePlates(bool destroyMoveIndicators = false)
     {
         GameObject[] movePlates = GameObject.FindGameObjectsWithTag("MovePlate");
@@ -192,6 +232,14 @@ public class ChessPiece : MonoBehaviour
 
         }
     }
+    /// <summary>
+    /// Initializes the move plates for the current chess piece.
+    /// </summary>
+    /// <remarks>
+    /// This method spawns move plates based on the current chess piece's position and type.
+    /// The move plates are used to determine the valid moves for the piece, and are used to move the piece when clicked.
+    /// The method takes no parameters and does not return any values.
+    /// </remarks>
     public void InitiateMovePlates()
     {
         MovePlateSpawn(position.x, position.y, false, "selected");
@@ -199,7 +247,7 @@ public class ChessPiece : MonoBehaviour
         {
             case "black_queen":
             case "white_queen":
-                if (pregnantWith == "")
+                if (pregnantWith == "") //If the queen is pregnant, it moves like a king
                 {
                     LineMovePlate(1, 0);
                     LineMovePlate(0, 1);
@@ -218,7 +266,7 @@ public class ChessPiece : MonoBehaviour
                 break;
             case "black_bishop":
             case "white_bishop":
-                if (this.position.x < 8)
+                if (this.position.x < 8) // Bishops cannot move if on vacation
                 {
                     LineMovePlate(1, 1);
                     LineMovePlate(1, -1);
@@ -257,7 +305,13 @@ public class ChessPiece : MonoBehaviour
                 break;
         }
     }
-
+    /// <summary>
+    /// Generates walls for a rook.
+    /// </summary>
+    /// <remarks>
+    /// This method checks if the name of the current object contains "rook".
+    /// If it does, it calls the LineWallGenrator method with different arguments.
+    /// </remarks>
     public void WallGenerator()
     {
         if (this.name.Contains("rook"))
@@ -269,7 +323,16 @@ public class ChessPiece : MonoBehaviour
         }
 
     }
-
+    /// <summary>
+    /// Generates a wall along a line in the chessboard.
+    /// </summary>
+    /// <param name="xInc">The increment in the x-coordinate of the line.</param>
+    /// <param name="yInc">The increment in the y-coordinate of the line.</param>
+    /// <remarks>
+    /// This method checks if the position in the chessboard is within bounds and if the position is empty.
+    /// If it is, it checks if the next position in the line is within bounds and if it contains a rook of the same color.
+    /// If it does, it creates a wall at the current position and displays an alert.
+    /// </remarks>
     private void LineWallGenrator(int xInc, int yInc)
     {
         Controller sc = controller.GetComponent<Controller>();
@@ -288,7 +351,17 @@ public class ChessPiece : MonoBehaviour
             }
         }
     }
-
+    /// <summary>
+    /// Generates a move plate along a line in the chessboard.
+    /// </summary>
+    /// <param name="xIncrement">The increment in the x-coordinate of the line.</param>
+    /// <param name="yIncrement">The increment in the y-coordinate of the line.</param>
+    /// <remarks>
+    /// This method checks if the position in the chessboard is within bounds and if the position is empty.
+    /// If it is, it creates a move plate at the current position.
+    /// It then increments the x and y coordinates by the given increments and repeats the process.
+    /// If the position is not empty and contains a piece of a different color, it creates a capturing move plate at the current position.
+    /// </remarks>
     public void LineMovePlate(int xIncrement, int yIncrement)
     {
         Controller cs = controller.GetComponent<Controller>();
@@ -307,6 +380,13 @@ public class ChessPiece : MonoBehaviour
                 MovePlateSpawn(x, y, true);
         }
     }
+    /// <summary>
+    /// Moves the chess piece in an L shape by spawning move plates at the specified coordinates.
+    /// </summary>
+    /// <remarks>
+    /// This method calls the PointMovePlate method eight times to spawn move plates in an L shape.
+    /// The move plates are used to determine the valid moves for the piece, and are used to move the piece when clicked.
+    /// </remarks>
     public void LMovePlate()
     {
         PointMovePlate(position.x + 1, position.y + 2);
@@ -318,7 +398,10 @@ public class ChessPiece : MonoBehaviour
         PointMovePlate(position.x - 2, position.y + 1);
         PointMovePlate(position.x - 2, position.y - 1);
     }
-
+    /// <summary>
+    /// Generates move plates around the current chess piece to indicate valid moves.
+    /// If the piece is a king and it's the first move, it also checks for the possibility of a castle move.
+    /// </summary>
     public void SurroundMovePlate()
     {
         Controller sc = controller.GetComponent<Controller>();
@@ -357,7 +440,11 @@ public class ChessPiece : MonoBehaviour
 
 
     }
-
+    /// <summary>
+    /// Generates a move plate at the specified coordinates. If the position is within the bounds of the board, it checks if there is a chess piece at that position. If there is no chess piece, it spawns a move plate. If there is a chess piece, it checks if it is of a different color and not a wall. If it is, it spawns a move plate with the option to capture the piece.
+    /// </summary>
+    /// <param name="x">The x-coordinate of the move plate.</param>
+    /// <param name="y">The y-coordinate of the move plate.</param>
     public void PointMovePlate(int x, int y)
     {
         Controller sc = controller.GetComponent<Controller>();
@@ -376,7 +463,16 @@ public class ChessPiece : MonoBehaviour
             }
         }
     }
-
+    /// <summary>
+    /// Generates move plates for a pawn piece based on the specified coordinates.
+    /// If it is the first move, it spawns a move plate for a two-square advance. 
+    /// It also spawns a move plate for promotion if the pawn reaches the first or eighth rank.
+    /// 
+    /// If there is a piece next to the pawn, it checks if it is of a different color and not a wall.
+    /// If it is, it spawns a move plate with the option to capture the piece.
+    /// </summary>
+    /// <param name="x">The x-coordinate of the pawn.</param>
+    /// <param name="y">The y-coordinate of the pawn.</param>
     public void PawnMovePlate(int x, int y)
     {
         bool promote = false;
@@ -403,7 +499,11 @@ public class ChessPiece : MonoBehaviour
                 MovePlateSpawn(x - 1, y, true, promote ? "promote" : null);
         }
     }
-
+    /// <summary>
+    /// Promotes the chess piece by setting its name to the specified piece, activating it, deactivating the promotion overlay,
+    /// and marking the piece as promoted.
+    /// </summary>
+    /// <param name="piece">The name of the piece to promote to.</param>
     public void Promote(string piece)
     {
         Debug.Log(piece);
@@ -412,13 +512,20 @@ public class ChessPiece : MonoBehaviour
         po.SetActive(false);
         promoted = true;
     }
+    /// <summary>
+    /// Promotes the king to a given chess piece by setting its name to the specified piece,
+    /// activating the UI alert, and updating the king's name. This is used when the king eats a piece, as per rule 1.
+    /// </summary>
+    /// <param name="piece">The name of the piece to promote to.</param>
     public void KingPromote(string piece)
     {
         Debug.Log(piece + " king promote");
         UIControl.DisplayAlert(1);
         this.name = piece;
     }
-
+    /// <summary>
+    /// Shows the promotion menu for a pawn, and customized the sprite based on the color of the pawn.
+    /// </summary>
     public void ShowPromoteMenu()
     {
         po = GameObject.FindWithTag("Promotion Options").transform.Find("Promotion Menu").gameObject;
@@ -446,7 +553,13 @@ public class ChessPiece : MonoBehaviour
             po.transform.Find("KnightPromote").GetComponent<Button>().onClick.AddListener(() => Promote("black_knight"));
         }
     }
-
+    /// <summary>
+    /// Spawns a move plate at the specified coordinates.
+    /// </summary>
+    /// <param name="x">The x-coordinate of the move plate.</param>
+    /// <param name="y">The y-coordinate of the move plate.</param>
+    /// <param name="isAttack">Indicates if the move plate represents an attack.</param>
+    /// <param name="indicator">The indicator for the move plate.</param>
     public void MovePlateSpawn(int x, int y, bool isAttack = false, string indicator = null)
     {
         Controller sc = controller.GetComponent<Controller>();

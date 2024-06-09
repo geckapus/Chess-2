@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.WSA;
 
 public class MovePlate : MonoBehaviour
 {
@@ -44,7 +45,19 @@ public class MovePlate : MonoBehaviour
         if (indicator == "move")
             ShowMovePlates(true);
     }
-
+    /// <summary>
+    /// Handles the mouse up event for the MovePlate object.
+    /// This is activated when a moveplate is clicked on.
+    /// If capturing is true, it checks if the captured object is a king and performs a dexterity saving throw.
+    /// If the captured object is an "enPassant" piece, it updates the pawn count and destroys the associated pawn.
+    /// If the king captures an object, it promotes the king's moveset to whatever it captured.
+    /// If the captured object is a pawn, it updates the pawn count.
+    /// It then updates the pawn count UI, destroys the captured object, and sets the position empty.
+    /// If the indicator is not null, it performs a move action based on the indicator type.
+    /// If the indicator is "2squares", it creates an "enPassant" piece at the new position.
+    /// If the indicator is "promote", it shows the promotion UI and waits for an input before continuing the game.
+    /// If the indicator contains "castle", it performs a castle action
+    /// </summary>
     private void OnMouseUp()
     {
         if ((indicator == null || indicator == "2squares" || indicator == "promote" || indicator.Contains("castle")) && !sc.GetComponent<Controller>().isPaused)
@@ -140,6 +153,10 @@ public class MovePlate : MonoBehaviour
 
         }
     }
+    /// <summary>
+    /// Waits for the promotion of a chess piece to complete. This coroutine was needed for when a pawn promotes, as the game needs to wait for the user to make a selection before the game continues.
+    /// </summary>
+    /// <returns>An enumerator that waits for the promotion to complete.</returns>
     private IEnumerator WaitForPromotion()
     {
         // Wait for the first frame to ensure the promoted bool is set

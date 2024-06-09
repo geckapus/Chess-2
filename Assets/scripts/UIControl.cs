@@ -19,7 +19,7 @@ public class UIControl : MonoBehaviour
     public Camera mainCamera;
     public Camera perspectiveCamera;
     GameObject alert;
-    public string[] rules = new string[] {
+    public string[] rules = new string[] { //List of all rules, used for Rule Alerts, which are activated by other scripts when a rule is triggered
         "Rules",
         "✅When the King eats a piece, he gains the piece's power. However, the king can't promote as a pawn, and may get stuck trying!",
         "✅Two towers can create a wall if there is only 1 space between them",
@@ -27,7 +27,7 @@ public class UIControl : MonoBehaviour
         "✅The square J7 now exists. There are no requirements that need to be filled in order for it to exist",
         "You may steal one (1) pawn from the board at any point in the game. If the opponent doesn't catch you in the act it is considered a legal move.",
         "✅Rule 10 only applies on even days of the week",
-        "When you would be in checkmate you can roll a dexterity saving throw, 15 or higher succeeds (nat 20 kills all checking pieces)",
+        "✅When you would be in checkmate you can roll a dexterity saving throw, 15 or higher succeeds (nat 20 kills all checking pieces)",
         "If someone gets caught in the act stated in rule 5, they will face the same consequences as stated in rule 12.",
         "✅Pressing F5 will change perspective",
         "✅Rule 6 only applies on uneven days of the week",
@@ -40,14 +40,14 @@ public class UIControl : MonoBehaviour
         "Add a new piece: Vladimir Lenin   When the communist revolution is activated, he is placed on the board in the place of the king, who is getting shot.  After that, a D20 is rolled 5 times. Each roll is for 1 pawn. 1-12 turns it into a knight, 13-19 turns it into a rook, 20 turns it in a knook"
         };
 
-    private void Start()
+    private void Start() //initializes variables
     {
         ct = controller.GetComponent<Controller>();
         System.DateTime currentDate = System.DateTime.Now;
         System.DayOfWeek currentDay = currentDate.DayOfWeek;
         dayOfWeekText.GetComponent<TextMeshProUGUI>().text = currentDay.ToString();
     }
-    private void Update()
+    private void Update() //changes perspective when F5 is pressed
     {
         if (Input.GetKeyDown(KeyCode.F5))
         {
@@ -63,7 +63,11 @@ public class UIControl : MonoBehaviour
             ct.isPaused = false;
         }
     }
-
+    /// <summary>
+    /// Creates an alert with the given title and text.
+    /// </summary>
+    /// <param name="title">The title of the alert.</param>
+    /// <param name="text">The text content of the alert.</param>
     private void CreateAlert(string title, string text)
     {
         Debug.Log("Alert: " + title + " " + text);
@@ -71,51 +75,74 @@ public class UIControl : MonoBehaviour
         alert.transform.Find("Title").GetComponent<TextMeshProUGUI>().text = title;
         alert.transform.Find("Text").GetComponent<TextMeshProUGUI>().text = text;
     }
-
+    /// <summary>
+    /// Displays an alert with the given rule number and its corresponding text.
+    /// Destroys the existing alert if it exists.
+    /// </summary>
+    /// <param name="rule">The rule number to display.</param>
     public void DisplayAlert(int rule)
     {
         if (alert != null) Destroy(alert);
         CreateAlert($"Rule {rule}", rules[rule]);
     }
-
+    /// <summary>
+    /// Updates the text of the "White" and "Black" TextMeshProUGUI components in the "enjoymentCounter" GameObject.
+    /// The text is set to "White - {whiteEnjoyment}" and "Black - {blackEnjoyment}" respectively.
+    /// </summary>
     public void UpdateEnjoymentCounter()
     {
         enjoymentCounter.transform.Find("White").GetComponent<TextMeshProUGUI>().text = "White - " + ct.whiteEnjoyment.ToString();
         enjoymentCounter.transform.Find("Black").GetComponent<TextMeshProUGUI>().text = "Black - " + ct.blackEnjoyment.ToString();
     }
+    /// <summary>
+    /// Updates the text of the "White" and "Black" TextMeshProUGUI components in the "pawnsLostCounter" GameObject.
+    /// The text is set to "White - {whitePawnsTaken}" and "Black - {blackPawnsTaken}" respectively.
+    /// </summary>
     public void UpdatePawnsLostCounter()
     {
         pawnsLostCounter.transform.Find("White").GetComponent<TextMeshProUGUI>().text = "White - " + ct.whitePawnsTaken.ToString();
         pawnsLostCounter.transform.Find("Black").GetComponent<TextMeshProUGUI>().text = "Black - " + ct.blackPawnsTaken.ToString();
     }
-
+    /// <summary>
+    /// Changes the interactability of the shop button based on the provided boolean value.
+    /// This is used every move after checking whether the queen is by the king and not pregnant.
+    /// </summary>
+    /// <param name="x">A boolean value indicating whether the button should be enabled or disabled.</param>
     public void ChangeShopButton(bool x)
     {
         Debug.Log("changed button to" + x);
         shopButton.GetComponent<Button>().interactable = x;
-
-        // Optionally change the button's color to indicate it is disabled
-        //ColorBlock cb = shopButton.GetComponent<Button>().colors;
-        //cb.disabledColor = Color.gray; // Ensure the disabled color is also set
-        //shopButton.GetComponent<Button>().colors = cb;
     }
-
+    /// <summary>
+    /// Sets the active state of the pawn shop based on the provided boolean value.
+    /// </summary>
+    /// <param name="x">A boolean value indicating whether the shop should be active or inactive.</param>
     public void ChangeShop(bool x)
     {
         shop.SetActive(x);
     }
+    /// <summary>
+    /// Changes the interactability of the flip board toggle based on the provided boolean value.
+    /// </summary>
+    /// <param name="x">A boolean value indicating whether the toggle should be enabled or disabled.</param>
     public void ChangeFlipBoardToggle(bool x)
     {
         flipBoardToggle.GetComponent<Toggle>().interactable = x;
     }
-
+    /// <summary>
+    /// Changes the state of the saving throw UI element and updates its text.
+    /// </summary>
+    /// <param name="x">A boolean indicating whether the saving throw should be active or inactive.</param>
+    /// <param name="roll">An optional integer representing the roll value to display.</param>
+    /// <param name="instructions">An optional string representing the instructions to display.</param>
     public void ChangeSavingThrow(bool x, int roll = 20, string instructions = "instructions")
     {
         savingThrow.SetActive(x);
         savingThrow.transform.Find("Number").GetComponent<TextMeshProUGUI>().text = roll.ToString();
         savingThrow.transform.Find("Instructions").GetComponent<TextMeshProUGUI>().text = instructions;
     }
-    public void SetSavingThrowOK()
+
+    public void SetSavingThrowOK() //This is used when the player clicks on the OK button on the dexterity saving throw screen. This method is not needed elsewhere.
     {
         ChangeSavingThrow(false);
         ct.GameOverChecked();
