@@ -21,10 +21,12 @@ public class Controller : MonoBehaviour
     public Dictionary<string, int> piecePrices = new() { { "pawn", 3 }, { "rook", 15 }, { "knight", 9 }, { "bishop", 9 }, { "queen", 27 } };
 
     public string currentPlayer = "white";
-    private bool gameOver = false;
+    public bool gameOver = false;
     public bool isPaused;
     public int whiteEnjoyment = 0;
     public int blackEnjoyment = 0;
+    public int blackPawnsTaken = 0;
+    public int whitePawnsTaken = 0;
     public void ToggleFlipBoard()
     {
         settings["flip_board"] = settings["flip_board"] == "false" ? "true" : "false";
@@ -262,6 +264,10 @@ public class Controller : MonoBehaviour
         }
         else Debug.Log("not enough funds");
     }
+    public void CommunistRevolution()
+    {
+
+    }
     public IEnumerator MoveObject(GameObject piece, Vector3 newPosition, float duration)
     {
         // Get the current position of the piece
@@ -324,6 +330,10 @@ public class Controller : MonoBehaviour
 
         // Destroy the flash instance after the animation is complete
         Destroy(flashInstance);
+    }
+    public void GameOverChecked()
+    {
+        if (gameOver) GameOver(currentPlayer == "white" ? "black" : "white");
     }
 
     public void GameOver(string winner)

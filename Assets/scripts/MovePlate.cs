@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class MovePlate : MonoBehaviour
@@ -11,10 +12,11 @@ public class MovePlate : MonoBehaviour
     public string indicator = null;
     private ChessPiece rf;
     private Controller sc;
+    private UIControl uiControl;
 
     private void Start()
     {
-
+        uiControl = GameObject.FindGameObjectWithTag("Canvas").GetComponent<UIControl>();
         rf = Reference.GetComponent<ChessPiece>();
         sc = GameObject.FindGameObjectWithTag("GameController").GetComponent<Controller>();
         if (sc.settings["flip_board"] == "true" && sc.currentPlayer == "black")
@@ -52,9 +54,32 @@ public class MovePlate : MonoBehaviour
             {
                 GameObject cp = sc.GetPosition(position.x, position.y);
                 if (cp.GetComponent<ChessPiece>().isKing)
-                    sc.GameOver(cp.GetComponent<ChessPiece>().color == "white" ? "black" : "white");
+                {
+                    int roll = Random.Range(1, 21);
+                    if (roll == 20)
+                    {
+                        uiControl.ChangeSavingThrow(true, roll, "Natural 20! Killing all checking pieces. However, you won't get to move your king on this move.");
+                        Debug.Log("Natural 20! Killing all checking pieces.");
+                        cp = rf.gameObject;
+                    }
+                    else if (roll >= 15)
+                    {
+                        uiControl.ChangeSavingThrow(true, roll, "Saving throw succeeded! You get an extra move to escape checkmate.");
+                        Debug.Log("Saving throw succeeded! Escaping checkmate.");
+                        sc.NextTurn();
+                        return;
+                    }
+                    else
+                    {
+                        sc.gameOver = true;
+                        uiControl.ChangeSavingThrow(true, roll, "Saving throw failed. Checkmate stands.");
+                        Debug.Log("Saving throw failed. Checkmate stands. starting coroutine.");
+                    }
+                }
                 else if (cp.name.Contains("enPassant"))
                 {
+                    if (cp.GetComponent<ChessPiece>().color == "white") sc.whitePawnsTaken++;
+                    else sc.blackPawnsTaken++;
                     Destroy(sc.GetPosition(position.x, position.y + (rf.color == "white" ? -1 : 1)));
                     sc.SetPositionEmpty(position.x, position.y + (rf.color == "white" ? -1 : 1));
                 }
@@ -62,8 +87,14 @@ public class MovePlate : MonoBehaviour
                 {
                     rf.KingPromote(rf.color + cp.name[cp.name.IndexOf("_")..]);
                 }
-
+                else if (cp.name.Contains("pawn"))
+                {
+                    if (cp.GetComponent<ChessPiece>().color == "white") sc.whitePawnsTaken++;
+                    else sc.blackPawnsTaken++;
+                }
+                uiControl.UpdatePawnsLostCounter();
                 Destroy(cp);
+                sc.SetPositionEmpty(position.x, position.y);
             }
 
             //Making a move
@@ -113,6 +144,7 @@ public class MovePlate : MonoBehaviour
     {
         // Wait for the first frame to ensure the promoted bool is set
         yield return null;
+
 
         while (!rf.promoted)
         {
