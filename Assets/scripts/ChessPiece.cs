@@ -20,6 +20,9 @@ public class ChessPiece : MonoBehaviour
     public int daysOnVacation = 0;
     public bool hasWall = false;
     public UIControl UIControl;
+    public int daysPregnant = 0;
+    public int daysAfterBirth = 0;
+    public string pregnantWith = "";
 
     private Vector2Int position = new Vector2Int(-1, -1);
     public Vector2Int previousPosition = new Vector2Int(-1, -1);
@@ -122,6 +125,17 @@ public class ChessPiece : MonoBehaviour
 
         return false;
     }
+    public bool CheckKing(int x, int y, string color)
+    {
+        Controller sc = controller.GetComponent<Controller>();
+        if (sc.PositionWithinBounds(x, y) && sc.GetPosition(x, y) != null)
+        {
+            if (sc.GetPosition(x, y).GetComponent<ChessPiece>().isKing && sc.GetPosition(x, y).GetComponent<ChessPiece>().color == color)
+                return true;
+        }
+
+        return false;
+    }
 
     public void SetTransform()
     {
@@ -185,14 +199,18 @@ public class ChessPiece : MonoBehaviour
         {
             case "black_queen":
             case "white_queen":
-                LineMovePlate(1, 0);
-                LineMovePlate(0, 1);
-                LineMovePlate(1, 1);
-                LineMovePlate(-1, 0);
-                LineMovePlate(0, -1);
-                LineMovePlate(-1, -1);
-                LineMovePlate(-1, 1);
-                LineMovePlate(1, -1);
+                if (pregnantWith == "")
+                {
+                    LineMovePlate(1, 0);
+                    LineMovePlate(0, 1);
+                    LineMovePlate(1, 1);
+                    LineMovePlate(-1, 0);
+                    LineMovePlate(0, -1);
+                    LineMovePlate(-1, -1);
+                    LineMovePlate(-1, 1);
+                    LineMovePlate(1, -1);
+                }
+                else SurroundMovePlate();
                 break;
             case "black_knight":
             case "white_knight":
@@ -261,7 +279,6 @@ public class ChessPiece : MonoBehaviour
         {
             if (sc.PositionWithinBounds(x + xInc, y + yInc) && sc.GetPosition(x + xInc, y + yInc) != null)
             {
-                Debug.Log(sc.GetPosition(x + xInc, y + yInc) + "rook move");
                 if (sc.GetPosition(x + xInc, y + yInc).GetComponent<ChessPiece>().name == color + "_rook")
                 {
                     sc.SetPosition(sc.Create("wall", x, y));
@@ -314,22 +331,30 @@ public class ChessPiece : MonoBehaviour
         PointMovePlate(position.x + 1, position.y - 1);
         PointMovePlate(position.x + 1, position.y + 1);
         //kingside castle
-        GameObject kingsideRook = sc.GetPosition(position.x + 3, position.y);
-        if (kingsideRook != null)
+        if (sc.PositionWithinBounds(position.x + 3, position.y))
         {
-            if (firstMove && sc.GetPosition(position.x + 1, position.y) == null && sc.GetPosition(position.x + 2, position.y) == null && kingsideRook.GetComponent<ChessPiece>().firstMove && kingsideRook.GetComponent<ChessPiece>().name == color + "_rook")
+            GameObject kingsideRook = sc.GetPosition(position.x + 3, position.y);
+            if (kingsideRook != null)
             {
-                MovePlateSpawn(position.x + 2, position.y, false, "castleKingSide");
+                if (firstMove && sc.GetPosition(position.x + 1, position.y) == null && sc.GetPosition(position.x + 2, position.y) == null && kingsideRook.GetComponent<ChessPiece>().firstMove && kingsideRook.GetComponent<ChessPiece>().name == color + "_rook")
+                {
+                    MovePlateSpawn(position.x + 2, position.y, false, "castleKingSide");
+                }
             }
         }
-        GameObject queensideRook = sc.GetPosition(position.x - 4, position.y);
-        if (queensideRook != null)
+
+        if (sc.PositionWithinBounds(position.x - 4, position.y))
         {
-            if (firstMove && sc.GetPosition(position.x - 1, position.y) == null && sc.GetPosition(position.x - 2, position.y) == null && sc.GetPosition(position.x - 3, position.y) == null && queensideRook.GetComponent<ChessPiece>().firstMove && queensideRook.GetComponent<ChessPiece>().name == color + "_rook")
+            GameObject queensideRook = sc.GetPosition(position.x - 4, position.y);
+            if (queensideRook != null)
             {
-                MovePlateSpawn(position.x - 2, position.y, false, "castleQueenSide");
+                if (firstMove && sc.GetPosition(position.x - 1, position.y) == null && sc.GetPosition(position.x - 2, position.y) == null && sc.GetPosition(position.x - 3, position.y) == null && queensideRook.GetComponent<ChessPiece>().firstMove && queensideRook.GetComponent<ChessPiece>().name == color + "_rook")
+                {
+                    MovePlateSpawn(position.x - 2, position.y, false, "castleQueenSide");
+                }
             }
         }
+
 
     }
 

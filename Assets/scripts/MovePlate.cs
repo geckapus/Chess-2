@@ -23,7 +23,6 @@ public class MovePlate : MonoBehaviour
         }
         if (sc.settings["showMovePlates"] == "true") ShowMovePlates(false);
         else ShowMovePlates(true);
-        Debug.Log(indicator);
         if (capturing)
             gameObject.GetComponent<SpriteRenderer>().color = new Color(1.0f, 0.0f, 0.0f, 1.0f);
         if (indicator == "selected")
@@ -46,8 +45,6 @@ public class MovePlate : MonoBehaviour
 
     private void OnMouseUp()
     {
-        Debug.Log(indicator);
-        Debug.Log(capturing);
         if ((indicator == null || indicator == "2squares" || indicator == "promote" || indicator.Contains("castle")) && !sc.GetComponent<Controller>().isPaused)
         {
 
@@ -67,7 +64,6 @@ public class MovePlate : MonoBehaviour
                 }
 
                 Destroy(cp);
-                Debug.Log("capturing" + rf.name + cp.name);
             }
 
             //Making a move

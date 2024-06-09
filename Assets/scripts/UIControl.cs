@@ -10,6 +10,9 @@ public class UIControl : MonoBehaviour
     public GameObject dayOfWeekText;
     public GameObject enjoymentCounter;
     public GameObject controller;
+    public GameObject shopButton;
+    public GameObject shop;
+    public GameObject flipBoardToggle;
     private Controller ct;
     public Camera mainCamera;
     public Camera perspectiveCamera;
@@ -29,7 +32,8 @@ public class UIControl : MonoBehaviour
         "If you win a Chess 2 game without eating any piece, you get the true ending.",
         "If this rule is activated, the opposing player may analyze the current position on chess.com/analysis or lichess.org/analysis.",
         "If more than 3 pawns die on either side, start a communist revolution.",
-        "✅Add the spaces i4 and i5. When a piece enters one of these squares it goes on vacation. Pieces can come back from vacation at any time. Bishops cannot come back from vacation. If your king is on vacation for more than 3 consecutive turns he gets assassinated. At the start of your turn, for each piece you have on vacation you get +2 enjoyment. When a knight and a rook of the same colour are on vacation at the same time, they fuse into a knook."
+        "✅Add the spaces i4 and i5. When a piece enters one of these squares it goes on vacation. Pieces can come back from vacation at any time. Bishops cannot come back from vacation. If your king is on vacation for more than 3 consecutive turns he gets assassinated. At the start of your turn, for each piece you have on vacation you get +2 enjoyment. When a knight and a rook of the same colour are on vacation at the same time, they fuse into a knook.",
+        "If your queen is next to your king you can use enjoyment to buy new units. After you buy them for three round the queen can only move like a king, but afterwards the unit arrives at a designated space where they can't be taken: J4 and J5. They are teleported on a free field to the left of them after at most two turns. If that fails the player who bought them loses. Pawn: 3 Enjoyment. Horsey/Bishop: 9 Enjoyment. Rook: 15 Enjoyment. Queen: 27 Enjoyment. Hybrid Units: less expensive*more expensive = Unit."
         };
 
     private void Start()
@@ -59,7 +63,7 @@ public class UIControl : MonoBehaviour
     private void CreateAlert(string title, string text)
     {
         Debug.Log("Alert: " + title + " " + text);
-        alert = Instantiate(alertPrefab, new Vector3(7, -1, 0), Quaternion.identity, gameObject.transform);
+        alert = Instantiate(alertPrefab, new Vector3(6.5f, -2, 0), Quaternion.identity, gameObject.transform);
         alert.transform.Find("Title").GetComponent<TextMeshProUGUI>().text = title;
         alert.transform.Find("Text").GetComponent<TextMeshProUGUI>().text = text;
     }
@@ -74,5 +78,25 @@ public class UIControl : MonoBehaviour
     {
         enjoymentCounter.transform.Find("White").GetComponent<TextMeshProUGUI>().text = "White - " + ct.whiteEnjoyment.ToString();
         enjoymentCounter.transform.Find("Black").GetComponent<TextMeshProUGUI>().text = "Black - " + ct.blackEnjoyment.ToString();
+    }
+
+    public void ChangeShopButton(bool x)
+    {
+        Debug.Log("changed button to" + x);
+        shopButton.GetComponent<Button>().interactable = x;
+
+        // Optionally change the button's color to indicate it is disabled
+        //ColorBlock cb = shopButton.GetComponent<Button>().colors;
+        //cb.disabledColor = Color.gray; // Ensure the disabled color is also set
+        //shopButton.GetComponent<Button>().colors = cb;
+    }
+
+    public void ChangeShop(bool x)
+    {
+        shop.SetActive(x);
+    }
+    public void ChangeFlipBoardToggle(bool x)
+    {
+        flipBoardToggle.GetComponent<Toggle>().interactable = x;
     }
 }

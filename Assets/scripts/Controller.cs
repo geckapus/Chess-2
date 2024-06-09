@@ -16,7 +16,9 @@ public class Controller : MonoBehaviour
     public GameObject gameOverText;
     public GameObject canvas;
     private UIControl uiControl;
-    public Dictionary<string, string> settings = new Dictionary<string, string> { { "flip_board", "false" }, { "showMovePlates", "true" } };
+    public GameObject flash;
+    public Dictionary<string, string> settings = new() { { "flip_board", "false" }, { "showMovePlates", "true" } };
+    public Dictionary<string, int> piecePrices = new() { { "pawn", 3 }, { "rook", 15 }, { "knight", 9 }, { "bishop", 9 }, { "queen", 27 } };
 
     public string currentPlayer = "white";
     private bool gameOver = false;
@@ -87,9 +89,7 @@ public class Controller : MonoBehaviour
 
     public void SetPositionEmpty(int x, int y)
     {
-        Debug.Log(board[x, y]);
         board[x, y] = null;
-        Debug.Log(board[x, y]);
     }
 
     public GameObject GetPosition(int x, int y)
@@ -103,6 +103,10 @@ public class Controller : MonoBehaviour
     public bool PositionOnVacation(int x, int y)
     {
         return (x == 8 && y == 3) || (x == 8 && y == 4);
+    }
+    public bool PositionInNursery(int x, int y)
+    {
+        return (x == 9 && y == 3) || (x == 9 && y == 4);
     }
 
     public string GetCurrentPlayer()
@@ -169,12 +173,94 @@ public class Controller : MonoBehaviour
                             SetPositionEmpty(8, 3);
                             SetPosition(Create(cp.color + "_knook", 8, 4));
                         }
-
                     }
+                }
+                if (cp.name == currentPlayer + "_queen")
+                {
+                    if ((cp.CheckKing(cp.Position.x + 1, cp.Position.y, cp.color) || cp.CheckKing(cp.Position.x - 1, cp.Position.y, cp.color) || cp.CheckKing(cp.Position.x, cp.Position.y + 1, cp.color) || cp.CheckKing(cp.Position.x, cp.Position.y - 1, cp.color)) && cp.pregnantWith == "")
+                    {
+                        uiControl.ChangeShopButton(true);
+                    }
+                    else uiControl.ChangeShopButton(false);
+                    if (cp.pregnantWith != "") cp.daysPregnant++;
+                    if (cp.daysPregnant == 3)
+                    {
+                        if (GetPosition(9, 3) == null)
+                        {
+                            GameObject newPiece = Create(cp.color + "_" + cp.pregnantWith, 9, 3);
+                            SetPosition(newPiece);
+                            StartCoroutine(FlashCoroutine(newPiece.transform.position.x, newPiece.transform.position.y));
+                        }
+                        else if (GetPosition(9, 4) == null)
+                        {
+                            GameObject newPiece = Create(cp.color + "_" + cp.pregnantWith, 9, 4);
+                            SetPosition(newPiece);
+                            StartCoroutine(FlashCoroutine(newPiece.transform.position.x, newPiece.transform.position.y));
+                        }
+                        else
+                        {
+                            GameOver(cp.color == "black" ? "white" : "black");
+                        }
+                        cp.pregnantWith = "";
+                        cp.daysPregnant = 0;
+                        cp.GetComponent<SpriteRenderer>().color = new Color(1.0f, 1.0f, 1.0f, 1.0f);
+                    }
+                }
+                if (PositionInNursery(cp.Position.x, cp.Position.y))
+                {
+                    cp.daysAfterBirth++;
+                    if (cp.daysAfterBirth == 4)
+                    {
+                        List<Vector2Int> emptyPositions = new();
+                        for (int x = 0; x < 8; x++)
+                        {
+                            for (int y = 0; y < 8; y++)
+                            {
+                                if (board[x, y] == null)
+                                {
+                                    emptyPositions.Add(new Vector2Int(x, y));
+                                }
+                            }
+                        }
+
+                        if (emptyPositions.Count > 0)
+                        {
+                            Vector2Int randomPosition = emptyPositions[UnityEngine.Random.Range(0, emptyPositions.Count)];
+                            cp.Position = randomPosition;
+                            SetPosition(piece);
+                            cp.daysAfterBirth = 0;
+                        }
+                    }
+
                 }
             }
         }
         uiControl.UpdateEnjoymentCounter();
+    }
+    public void ImpregnateQueen(string piece)
+    {
+        if ((currentPlayer == "white" ? whiteEnjoyment : blackEnjoyment) >= piecePrices[piece])
+        {
+            Debug.Log(piecePrices[piece]);
+            Debug.Log(currentPlayer == "white" ? whiteEnjoyment : blackEnjoyment);
+            uiControl.ChangeShopButton(false);
+            uiControl.ChangeShop(false);
+            foreach (GameObject chessPiece in board)
+            {
+                if (chessPiece == null) continue;
+                ChessPiece cp = chessPiece.GetComponent<ChessPiece>();
+                if (cp.name == currentPlayer + "_queen" && (cp.CheckKing(cp.Position.x + 1, cp.Position.y, cp.color) || cp.CheckKing(cp.Position.x - 1, cp.Position.y, cp.color) || cp.CheckKing(cp.Position.x, cp.Position.y + 1, cp.color) || cp.CheckKing(cp.Position.x, cp.Position.y - 1, cp.color)) && cp.daysPregnant == 0)
+                {
+                    cp.pregnantWith = piece;
+                    chessPiece.GetComponent<SpriteRenderer>().color = new Color(1.0f, 1.0f, 1.0f, 0.6f);
+                    break;
+                }
+            }
+            if (currentPlayer == "white") whiteEnjoyment -= piecePrices[piece];
+            else blackEnjoyment -= piecePrices[piece];
+            uiControl.UpdateEnjoymentCounter();
+        }
+        else Debug.Log("not enough funds");
     }
     public IEnumerator MoveObject(GameObject piece, Vector3 newPosition, float duration)
     {
@@ -206,6 +292,38 @@ public class Controller : MonoBehaviour
             gameOver = false;
             SceneManager.LoadScene("Game");
         }
+    }
+    private IEnumerator FlashCoroutine(float x, float y)
+    {
+        // Instantiate the flash prefab at the given position with zero scale
+        GameObject flashInstance = Instantiate(flash, new Vector3(x, y, -3), Quaternion.identity);
+        flashInstance.transform.localScale = Vector3.zero;
+
+        float duration = 0.5f;
+        float halfDuration = duration / 2f;
+        float elapsedTime = 0f;
+
+        // Lerp the scale from 0 to 1 over half the duration
+        while (elapsedTime < halfDuration)
+        {
+            float t = elapsedTime / halfDuration;
+            flashInstance.transform.localScale = Vector3.Lerp(Vector3.zero, Vector3.one, t);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+
+        // Lerp the scale from 1 back to 0 over the remaining half duration
+        elapsedTime = 0f;
+        while (elapsedTime < halfDuration)
+        {
+            float t = elapsedTime / halfDuration;
+            flashInstance.transform.localScale = Vector3.Lerp(Vector3.one, Vector3.zero, t);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+
+        // Destroy the flash instance after the animation is complete
+        Destroy(flashInstance);
     }
 
     public void GameOver(string winner)
