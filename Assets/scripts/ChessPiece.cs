@@ -38,8 +38,8 @@ public class ChessPiece : MonoBehaviour
     }
     public string color;
 
-    public Sprite black_pawn, black_rook, black_knight, black_bishop, black_queen, black_king, black_knook;
-    public Sprite white_pawn, white_rook, white_knight, white_bishop, white_queen, white_king, white_knook;
+    public Sprite black_pawn, black_rook, black_knight, black_bishop, black_queen, black_king, black_knook, black_antipawn;
+    public Sprite white_pawn, white_rook, white_knight, white_bishop, white_queen, white_king, white_knook, white_antipawn;
     public Sprite wallSprite;
     /*private void Start()
     {
@@ -65,6 +65,7 @@ public class ChessPiece : MonoBehaviour
             case "black_bishop": sr.sprite = black_bishop; color = "black"; break;
             case "black_queen": sr.sprite = black_queen; color = "black"; break;
             case "black_knook": sr.sprite = black_knook; color = "black"; break;
+            case "black_antipawn": sr.sprite = black_antipawn; color = "black"; break;
             case "black_king":
                 sr.sprite = black_king; color = "black";
                 isKing = true; break;
@@ -75,6 +76,7 @@ public class ChessPiece : MonoBehaviour
             case "white_bishop": sr.sprite = white_bishop; color = "white"; break;
             case "white_queen": sr.sprite = white_queen; color = "white"; break;
             case "white_knook": sr.sprite = white_knook; color = "white"; break;
+            case "white_antipawn": sr.sprite = white_antipawn; color = "white"; break;
             case "white_king":
                 sr.sprite = white_king; color = "white";
                 isKing = true; break;
@@ -106,7 +108,6 @@ public class ChessPiece : MonoBehaviour
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             cursor.transform.position = new Vector3(mousePos.x, mousePos.y, -2.0f);
         }
-
     }
     /// <summary>
     /// Checks if the chess piece (which must be a wall) is surrounded by rooks on both sides horizontally and vertically.
@@ -120,8 +121,7 @@ public class ChessPiece : MonoBehaviour
 
         if (!horizontalRooks && !verticalRooks)
         {
-            sc.SetPositionEmpty(position.x, position.y);
-            Destroy(gameObject);
+            sc.RemovePieceAt(position);
         }
     }
     /// <summary>
@@ -130,15 +130,12 @@ public class ChessPiece : MonoBehaviour
     /// <param name="x">The x-coordinate of the position to check.</param>
     /// <param name="y">The y-coordinate of the position to check.</param>
     /// <returns>Returns true if the position contains a rook piece, false otherwise.</returns>
-    public bool CheckRook(int x, int y)
+    public bool CheckRook(int x, int y, string color = null)
     {
         Controller sc = controller.GetComponent<Controller>();
-        if (sc.PositionWithinBounds(x, y) && sc.GetPosition(x, y) != null)
-        {
-            if (sc.GetPosition(x, y).GetComponent<ChessPiece>().name.Contains("rook"))
+        if (sc.PositionWithinBounds(x, y) && sc.GetPosition(x, y) != null && sc.GetPosition(x, y).GetComponent<ChessPiece>().name.Contains("rook"))
+            if (color == null || sc.GetPosition(x, y).GetComponent<ChessPiece>().color == color)
                 return true;
-        }
-
         return false;
     }
     /// <summary>
@@ -182,9 +179,18 @@ public class ChessPiece : MonoBehaviour
                 transform.position = new Vector3(-(position.x - 3.5f), -(position.y - 3.5f), -0.1f);
             }
             else
-                transform.position = new Vector3((position.x - 3.5f), (position.y - 3.5f), -0.1f);
+                transform.position = new Vector3(position.x - 3.5f, position.y - 3.5f, -0.1f);
 
         }
+    }
+    public void FlipBoardFix()
+    {
+        if (GameObject.FindGameObjectWithTag("GameController").GetComponent<Controller>().settings["flip_board"] == "true")
+        {
+            transform.position = new Vector3(-(position.x - 3.5f), -(position.y - 3.5f), -0.1f);
+        }
+        else
+            transform.position = new Vector3(position.x - 3.5f, position.y - 3.5f, -0.1f);
     }
     /// <summary>
     /// Rotates the board by flipping the x and y coordinates of the given position.
@@ -203,7 +209,7 @@ public class ChessPiece : MonoBehaviour
     /// </summary>
     private void OnMouseDown()
     {
-        if (controller.GetComponent<Controller>().currentPlayer == color && !controller.GetComponent<Controller>().IsGameOver() && !controller.GetComponent<Controller>().isPaused)
+        if (!controller.GetComponent<Controller>().anishMode && controller.GetComponent<Controller>().currentPlayer == color && !controller.GetComponent<Controller>().IsGameOver() && !controller.GetComponent<Controller>().isPaused)
         {
             DestroyMovePlates();
 
@@ -213,23 +219,45 @@ public class ChessPiece : MonoBehaviour
 
             InitiateMovePlates();
         }
+        else if (controller.GetComponent<Controller>().anishMode && controller.GetComponent<Controller>().currentPlayer != color && !controller.GetComponent<Controller>().IsGameOver() && !controller.GetComponent<Controller>().isPaused)
+        {
+            if (name.Contains("pawn"))
+            {
+                DestroyMovePlates(false, true);
+
+                controller.GetComponent<Controller>().anishMovePlate = MovePlateSpawn(position.x, position.y, true, "anish");
+            }
+        }
     }
     private void OnMouseUp()
     {
+        Debug.Log("Mouse Up");
+        RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
+
+        if (hit.collider != null)
+        {
+            GameObject hitObject = hit.collider.gameObject;
+            if (hitObject.name == "MovePlate(Clone)")
+            {
+                hitObject.GetComponent<MovePlate>().OnMouseUp();
+            }
+            Debug.Log("Target Position: " + hitObject.transform.position);
+        }
         Destroy(GameObject.FindGameObjectWithTag("cursor"));
     }
     /// <summary>
     /// Destroys all move plates in the scene, optionally destroying move indicators. Move indicators are purely visual, and are not used to move any pieces.
     /// </summary>
     /// <param name="destroyMoveIndicators">If true, move indicators will also be destroyed.</param>
-    public static void DestroyMovePlates(bool destroyMoveIndicators = false)
+    public static void DestroyMovePlates(bool destroyMoveIndicators = false, bool destroyAnish = false)
     {
         GameObject[] movePlates = GameObject.FindGameObjectsWithTag("MovePlate");
         foreach (GameObject movePlate in movePlates)
         {
-            if (movePlate.GetComponent<MovePlate>().indicator != "move" || destroyMoveIndicators)
+            if ((movePlate.GetComponent<MovePlate>().indicator != "move" || destroyMoveIndicators) && (movePlate.GetComponent<MovePlate>().indicator != "anish" || destroyAnish))
+            {
                 Destroy(movePlate);
-
+            }
         }
     }
     /// <summary>
@@ -266,7 +294,7 @@ public class ChessPiece : MonoBehaviour
                 break;
             case "black_bishop":
             case "white_bishop":
-                if (this.position.x < 8) // Bishops cannot move if on vacation
+                if (!controller.GetComponent<Controller>().PositionOnVacation(this.position.x, this.position.y)) // Bishops cannot move if on vacation
                 {
                     LineMovePlate(1, 1);
                     LineMovePlate(1, -1);
@@ -274,7 +302,7 @@ public class ChessPiece : MonoBehaviour
                     LineMovePlate(-1, -1);
                 }
                 else
-                    UIControl.DisplayAlert(14);
+                    UIControl.CreateAlert("Rule 14", "Bishops cannot come back from vacation");
                 break;
             case "black_king":
             case "white_king":
@@ -480,9 +508,11 @@ public class ChessPiece : MonoBehaviour
         if (y == 0 || y == 7) promote = true;
         if (sc.PositionWithinBounds(x, y) && sc.GetPosition(x, y) == null)
         {
-            if (sc.GetPosition(x, color == "white" ? y + 1 : y - 1) == null && firstMove)
+            // Check double square move for first move
+            int oneSquareY = color == "white" ? y + 1 : y - 1;
+            if (firstMove && sc.GetPosition(x, oneSquareY) == null && sc.PositionWithinBounds(x, oneSquareY))
             {
-                MovePlateSpawn(x, color == "white" ? y + 1 : y - 1, false, "2squares");
+                MovePlateSpawn(x, oneSquareY, false, "2squares");
             }
             MovePlateSpawn(x, y, false, promote ? "promote" : null);
         }
@@ -553,6 +583,31 @@ public class ChessPiece : MonoBehaviour
             po.transform.Find("KnightPromote").GetComponent<Button>().onClick.AddListener(() => Promote("black_knight"));
         }
     }
+    public (GameObject left, GameObject right) GetDiagonalPieces(string piece)
+    {
+        Controller sc = controller.GetComponent<Controller>();
+        int y = position.y + (color == "white" ? 1 : -1);
+        string oppositeColor = color == "white" ? "black" : "white";
+        GameObject leftPiece = null;
+        GameObject rightPiece = null;
+        if (sc.PositionWithinBounds(position.x - 1, y))
+        {
+            GameObject left = sc.GetPosition(position.x - 1, y);
+            if (left != null && left.GetComponent<ChessPiece>().color != color && left.GetComponent<ChessPiece>().name == oppositeColor + piece)
+            {
+                leftPiece = left;
+            }
+        }
+        if (sc.PositionWithinBounds(position.x + 1, y))
+        {
+            GameObject right = sc.GetPosition(position.x + 1, y);
+            if (right != null && right.GetComponent<ChessPiece>().color != color && right.GetComponent<ChessPiece>().name == oppositeColor + piece)
+            {
+                rightPiece = right;
+            }
+        }
+        return (leftPiece, rightPiece);
+    }
     /// <summary>
     /// Spawns a move plate at the specified coordinates.
     /// </summary>
@@ -560,7 +615,7 @@ public class ChessPiece : MonoBehaviour
     /// <param name="y">The y-coordinate of the move plate.</param>
     /// <param name="isAttack">Indicates if the move plate represents an attack.</param>
     /// <param name="indicator">The indicator for the move plate.</param>
-    public void MovePlateSpawn(int x, int y, bool isAttack = false, string indicator = null)
+    public GameObject MovePlateSpawn(int x, int y, bool isAttack = false, string indicator = null)
     {
         Controller sc = controller.GetComponent<Controller>();
         GameObject mp = Instantiate(movePlate, new Vector3(x - 3.5f, y - 3.5f, -0.5f), Quaternion.identity);
@@ -569,6 +624,6 @@ public class ChessPiece : MonoBehaviour
         mpScript.capturing = isAttack;
         mpScript.indicator = indicator;
         mpScript.SetPosition(x, y);
+        return mp;
     }
-
 }

@@ -8,7 +8,7 @@ public class MovePlate : MonoBehaviour
 {
     public GameObject Reference { set; get; }
 
-    Vector2Int position;
+    public Vector2Int position;
     public bool capturing = false;
     public string indicator = null;
     private ChessPiece rf;
@@ -29,9 +29,15 @@ public class MovePlate : MonoBehaviour
         if (capturing)
             gameObject.GetComponent<SpriteRenderer>().color = new Color(1.0f, 0.0f, 0.0f, 1.0f);
         if (indicator == "selected")
+        {
+            gameObject.transform.position = new Vector3(gameObject.transform.position.x, gameObject.transform.position.y, 0.5f);
             gameObject.GetComponent<SpriteRenderer>().color = new Color(0.0f, 1.0f, 0.0f, 1.0f);
+        }
         if (indicator == "move")
+        {
+            gameObject.transform.position = new Vector3(gameObject.transform.position.x, gameObject.transform.position.y, 0.5f);
             gameObject.GetComponent<SpriteRenderer>().color = new Color(1.0f, 1.0f, 1.0f, 1.0f);
+        }
     }
     public void ShowMovePlates(bool x)
     {
@@ -58,7 +64,7 @@ public class MovePlate : MonoBehaviour
     /// If the indicator is "promote", it shows the promotion UI and waits for an input before continuing the game.
     /// If the indicator contains "castle", it performs a castle action
     /// </summary>
-    private void OnMouseUp()
+    public void OnMouseUp()
     {
         if ((indicator == null || indicator == "2squares" || indicator == "promote" || indicator.Contains("castle")) && !sc.GetComponent<Controller>().isPaused)
         {
@@ -91,8 +97,8 @@ public class MovePlate : MonoBehaviour
                 }
                 else if (cp.name.Contains("enPassant"))
                 {
-                    if (cp.GetComponent<ChessPiece>().color == "white") sc.whitePawnsTaken++;
-                    else sc.blackPawnsTaken++;
+                    if (cp.GetComponent<ChessPiece>().color == "white") sc.whitePawnsLost++;
+                    else sc.blackPawnsLost++;
                     Destroy(sc.GetPosition(position.x, position.y + (rf.color == "white" ? -1 : 1)));
                     sc.SetPositionEmpty(position.x, position.y + (rf.color == "white" ? -1 : 1));
                 }
@@ -102,8 +108,8 @@ public class MovePlate : MonoBehaviour
                 }
                 else if (cp.name.Contains("pawn"))
                 {
-                    if (cp.GetComponent<ChessPiece>().color == "white") sc.whitePawnsTaken++;
-                    else sc.blackPawnsTaken++;
+                    if (cp.GetComponent<ChessPiece>().color == "white") sc.whitePawnsLost++;
+                    else sc.blackPawnsLost++;
                 }
                 uiControl.UpdatePawnsLostCounter();
                 Destroy(cp);
@@ -116,10 +122,7 @@ public class MovePlate : MonoBehaviour
 
             rf.firstMove = false;
 
-            if (indicator == "2squares")
-            {
-                sc.SetPosition(sc.Create(rf.color + "_enPassant", position.x, position.y + (rf.color == "white" ? -1 : 1)));
-            }
+
             if (indicator == "castleKingSide")
             {
                 sc.SetPosition(sc.Create(rf.color + "_rook", 5, position.y));
@@ -132,6 +135,7 @@ public class MovePlate : MonoBehaviour
                 Destroy(sc.GetPosition(0, position.y));
                 sc.SetPositionEmpty(0, position.y);
             }
+
             if (indicator == "promote" && !rf.isKing)
             {
                 rf.ShowPromoteMenu();
@@ -149,6 +153,23 @@ public class MovePlate : MonoBehaviour
                 rf.MovePlateSpawn(rf.previousPosition.x, rf.previousPosition.y, false, "move");
                 rf.MovePlateSpawn(rf.Position.x, rf.Position.y, false, "move");
                 rf.WallGenerator();
+            }
+            if (indicator == "2squares")
+            {
+                GameObject enPassant = sc.Create(rf.color + "_enPassant", position.x, position.y + (rf.color == "white" ? -1 : 1));
+                sc.SetPosition(enPassant);
+                ChessPiece enPassantPiece = enPassant.GetComponent<ChessPiece>();
+                enPassantPiece.FlipBoardFix();
+
+                (GameObject left, GameObject right) = enPassantPiece.GetDiagonalPieces("_pawn");
+                if (sc.settings["forceEnPassant"] == "true")
+                {
+                    if (left != null && right != null) sc.DoubleEnPassant(left, right, enPassant);
+                    else if (left != null) sc.ForceEnPassant(left);
+                    else if (right != null) sc.ForceEnPassant(right);
+
+                    //sc.RemovePieceAt(new Vector2Int(rf.Position.x, rf.Position.y));
+                }
             }
 
         }

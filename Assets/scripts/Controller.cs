@@ -18,16 +18,23 @@ public class Controller : MonoBehaviour
     private UIControl uiControl;
     public GameObject flash;
     //Settings
-    public Dictionary<string, string> settings = new() { { "flip_board", "false" }, { "showMovePlates", "true" } };
+    public Dictionary<string, string> settings = new() { { "flip_board", "false" }, { "showMovePlates", "true" }, { "forceEnPassant", "true" } };
     public Dictionary<string, int> piecePrices = new() { { "pawn", 3 }, { "rook", 15 }, { "knight", 9 }, { "bishop", 9 }, { "queen", 27 } };
 
     public string currentPlayer = "white";
     public bool gameOver = false;
     public bool isPaused;
+    public bool anishMode = false;
+    public bool catchGukesh = false;
+    public bool anishValidWhite = true;
+    public bool anishValidBlack = true;
+    public bool gukeshValidWhite = true;
+    public bool gukeshValidBlack = true;
+    public GameObject anishMovePlate;
     public int whiteEnjoyment = 0;
     public int blackEnjoyment = 0;
-    public int blackPawnsTaken = 0;
-    public int whitePawnsTaken = 0;
+    public int blackPawnsLost = 0;
+    public int whitePawnsLost = 0;
     /// <summary>
     /// Toggles the flip board setting.
     /// </summary>
@@ -42,6 +49,10 @@ public class Controller : MonoBehaviour
     public void ToggleShowMovePlates()
     {
         settings["showMovePlates"] = settings["showMovePlates"] == "false" ? "true" : "false";
+    }
+    public void ToggleForceEnPassant()
+    {
+        settings["forceEnPassant"] = settings["forceEnPassant"] == "false" ? "true" : "false";
     }
     /// <summary>
     /// Flips the transforms of all elements on the board if the flip board setting is true, and the current player is black.
@@ -59,6 +70,7 @@ public class Controller : MonoBehaviour
             if (currentPlayer == "black")
                 StartCoroutine(MoveObject(movePlate, ChessPiece.RotateBoard(movePlate.transform.position), 0.3f));
         }
+        uiControl.ToggleTileMap();
     }
     /// <summary>
     /// Initializes the game by creating the playerWhite and playerBlack arrays, and setting the positions of all pieces on the board.
@@ -138,7 +150,7 @@ public class Controller : MonoBehaviour
     /// <returns>True if the position is within bounds or on vacation, false otherwise.</returns>
     public bool PositionWithinBounds(int x, int y)
     {
-        return (x >= 0 && x < 8 && y >= 0 && y < 8) || (x == 9 && y == 6) || PositionOnVacation(x, y);
+        return ((x >= 0 && x < 8 && y >= 0 && y < 8) || (x == 9 && y == 6) || PositionOnVacation(x, y)) && !(x == 1 && y == 3);
     }
     /// <summary>
     /// Checks if the given position is on vacation.
@@ -175,19 +187,32 @@ public class Controller : MonoBehaviour
     /// </summary>
     public void NextTurn()
     {
+        if (anishMovePlate != null) // Destroy the anish move plate and the stolen pawn
+        {
+            Debug.Log(anishValidWhite + " " + anishValidBlack + " " + (currentPlayer == "white" ? anishValidWhite : anishValidBlack));
+            if (currentPlayer == "white") anishValidWhite = false;
+            else anishValidBlack = false;
+            RemovePieceAt(anishMovePlate.GetComponent<MovePlate>().position);
+            Destroy(anishMovePlate);
+        }
         this.currentPlayer = (this.currentPlayer == "white") ? "black" : "white"; // Change player
         ChessPiece.DestroyMovePlates(true); // Destroy all move plates, even move indicators
+        if (!(currentPlayer == "white" ? gukeshValidWhite : gukeshValidBlack)) uiControl.ChangeGukeshButton(false);
+        if (!(currentPlayer == "white" ? anishValidWhite : anishValidBlack)) uiControl.ChangeAnishButton(false, false);
         foreach (GameObject piece in board) //Go through all pieces
         {
             if (piece != null)
             {
                 ChessPiece cp = piece.GetComponent<ChessPiece>(); //identifies the piece we are analyzing
-                if (settings["flip_board"] == "true") //Flip the position of the piece on the board if the flip_board option is set to true
+                if (settings["flip_board"] == "true") //Flip the position of the piece on the board if the flip_board option is set to true 
+                {
                     StartCoroutine(MoveObject(piece, ChessPiece.RotateBoard(piece.transform.position), 0.3f));
+
+                    uiControl.ToggleTileMap();
+                }
                 if (piece.name == currentPlayer + "_enPassant") //Removes en passants, as they only exist for one round
                 {
-                    Destroy(piece);
-                    SetPositionEmpty(cp.Position.x, cp.Position.y);
+                    RemovePieceAt(cp.Position);
                 }
                 if (piece.name == "wall") //makes sure the wall is still supposed to exist
                     cp.CheckWalls();
@@ -204,27 +229,23 @@ public class Controller : MonoBehaviour
                         blackEnjoyment += 2;
                         cp.daysOnVacation++;
                     }
-                    if (cp.name.Contains("king") && cp.daysOnVacation == 3) //If the king is on vacation for 3 days, it dies
+                    if (cp.isKing && cp.daysOnVacation == 3) //If the king is on vacation for 3 days, it dies
                     {
                         uiControl.DisplayAlert(14);
                         GameOver(cp.color == "black" ? "white" : "black");
                     }
                     if (cp.name.Contains("knight")) //If a knight and rook are on vacation, the rook is destroyed and the knight becomes a Knook.
                     {
-                        if (cp.Position.y == 3 && cp.CheckRook(8, 4))
+                        if (cp.Position.y == 3 && cp.CheckRook(8, 4, cp.color))
                         {
-                            Destroy(board[8, 3]);
-                            Destroy(board[8, 4]);
-                            SetPositionEmpty(8, 4);
-                            SetPositionEmpty(8, 3);
+                            RemovePieceAt(new Vector2Int(8, 4));
+                            RemovePieceAt(new Vector2Int(8, 3));
                             SetPosition(Create(cp.color + "_knook", 8, 3));
                         }
-                        else if (cp.Position.y == 4 && cp.CheckRook(8, 3))
+                        else if (cp.Position.y == 4 && cp.CheckRook(8, 3, cp.color))
                         {
-                            Destroy(board[8, 3]);
-                            Destroy(board[8, 4]);
-                            SetPositionEmpty(8, 4);
-                            SetPositionEmpty(8, 3);
+                            RemovePieceAt(new Vector2Int(8, 4));
+                            RemovePieceAt(new Vector2Int(8, 3));
                             SetPosition(Create(cp.color + "_knook", 8, 4));
                         }
                     }
@@ -286,11 +307,70 @@ public class Controller : MonoBehaviour
                             cp.daysAfterBirth = 0;
                         }
                     }
-
                 }
+
             }
         }
         uiControl.UpdateEnjoymentCounter(); //update the enjoyment counter on the screen
+    }
+    public void RemovePieceAt(Vector2Int position)
+    {
+        if (board[position.x, position.y] != null)
+        {
+            Debug.Log(board[position.x, position.y].name);
+            Destroy(board[position.x, position.y]);
+        }
+        SetPositionEmpty(position.x, position.y);
+    }
+    public void ForceEnPassant(GameObject piece)
+    {
+        ChessPiece cp = piece.GetComponent<ChessPiece>(); //piece taking the en passant
+        ChessPiece rf = null; //en passant
+        (GameObject left, GameObject right) = cp.GetDiagonalPieces("_enPassant");
+        if (left != null) rf = left.GetComponent<ChessPiece>();
+        else if (right != null) rf = right.GetComponent<ChessPiece>();
+
+        SetPositionEmpty(cp.Position.x, cp.Position.y);
+        cp.Position = rf.Position;
+        cp.FlipBoardFix();
+        SetPosition(piece);
+        Destroy(rf.gameObject);
+        RemovePieceAt(new Vector2Int(cp.Position.x, cp.Position.y + (cp.color == "white" ? -1 : 1)));
+        uiControl.ChangeEnPassantModal(true);
+        StartCoroutine(WaitForNextTurn(0.3f));
+    }
+    public void DoubleEnPassant(GameObject left, GameObject right, GameObject enPassant)
+    {
+        ChessPiece enPassantPiece = enPassant.GetComponent<ChessPiece>();
+        GameObject rf = GetPosition(enPassantPiece.Position.x, enPassantPiece.Position.y + (enPassantPiece.color == "white" ? 1 : -1));
+        ChessPiece antipawn = Create(enPassantPiece.color + "_antipawn", rf.GetComponent<ChessPiece>().Position.x, rf.GetComponent<ChessPiece>().Position.y).GetComponent<ChessPiece>();
+        ChessPiece bishop = Create(left.GetComponent<ChessPiece>().color + "_bishop", enPassantPiece.Position.x, enPassantPiece.Position.y).GetComponent<ChessPiece>();
+        SetPositionEmpty(left.GetComponent<ChessPiece>().Position.x, left.GetComponent<ChessPiece>().Position.y);
+        SetPositionEmpty(right.GetComponent<ChessPiece>().Position.x, right.GetComponent<ChessPiece>().Position.y);
+        Destroy(left);
+        Destroy(right);
+        Destroy(enPassant);
+        Destroy(rf);
+        antipawn.FlipBoardFix();
+        bishop.FlipBoardFix();
+        SetPosition(antipawn.gameObject);
+        SetPosition(bishop.gameObject);
+        StartCoroutine(FlashCoroutine(bishop.gameObject.transform.position.x, bishop.gameObject.transform.position.y));
+        uiControl.ChangeEnPassantModal(true);
+        uiControl.DisplayAlert(3);
+        StartCoroutine(WaitForNextTurn(0.3f));
+    }
+    IEnumerator WaitForNextTurn(float seconds)
+    {
+        //Print the time of when the function is first called.
+        Debug.Log("Started Coroutine at timestamp : " + Time.time);
+
+        //yield on a new YieldInstruction that waits for 5 seconds.
+        yield return new WaitForSeconds(seconds);
+
+        //After we have waited 5 seconds print the time again.
+        Debug.Log("Finished Coroutine at timestamp : " + Time.time);
+        NextTurn();
     }
     /// <summary>
     /// Impregnates the queen with a given piece. This will only impregnate one queen at a time.
