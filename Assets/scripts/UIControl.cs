@@ -28,20 +28,29 @@ public class UIControl : MonoBehaviour
     public GameObject alert;
     public GameObject whiteTilemap;
     public GameObject blackTilemap;
+    public GameObject gukeshConfirmationModal;
+    public GameObject gukeshModal;
+    public GameObject gukeshFail;
+    public GameObject moveCounter;
+    public GameObject trueEnding;
+    public GameObject communistRevolutionModal;
+    public GameObject communistRevolutionText;
+    public GameObject audioSources;
+    public bool audioEnabled = true;
     public string[] rules = new string[] { //List of all rules, used for Rule Alerts, which are activated by other scripts when a rule is triggered
         "Rules",
         "✅When the King eats a piece, he gains the piece's power. However, the king can't promote as a pawn, and may get stuck trying!",
         "✅Two towers can create a wall if there is only 1 space between them (bricks your pipi)",
         "✅When two pawns are forced to en passant the same pawn at the same time, they fuse into a bishop and release an antipawn with some photons",
         "✅The square J7 now exists. There are no requirements that need to be filled in order for it to exist",
-        "You may steal one (1) pawn from the board at any point in the game. If the opponent doesn't catch you in the act it is considered a legal move.",
+        "✅You may steal one (1) pawn from the board at any point in the game. If the opponent doesn't catch you in the act it is considered a legal move.",
         "✅Rule 10 only applies on even days of the week",
         "✅When you would be in checkmate you can roll a dexterity saving throw, 15 or higher succeeds (nat 20 kills all checking pieces)",
-        "If someone gets caught in the act stated in rule 5, they will face the same consequences as stated in rule 12.",
+        "✅If someone gets caught in the act stated in rule 5, they will face the same consequences as stated in rule 12.",
         "✅Pressing F5 will change perspective",
         "✅Rule 6 only applies on uneven days of the week",
-        "If you win a Chess 2 game without eating any piece, you get the true ending.",
-        "If this rule is activated, the opposing player may analyze the current position on chess.com/analysis or lichess.org/analysis.",
+        "✅If you win a Chess 2 game without eating any piece, you get the true ending.",
+        "✅If this rule is activated, the opposing player may analyze the current position on chess.com/analysis or lichess.org/analysis.",
         "If more than 3 pawns die on either side, start a communist revolution.",
         "✅Add the spaces i4 and i5. When a piece enters one of these squares it goes on vacation. Pieces can come back from vacation at any time. Bishops cannot come back from vacation. If your king is on vacation for more than 3 consecutive turns he gets assassinated. At the start of your turn, for each piece you have on vacation you get +2 enjoyment. When a knight and a rook of the same colour are on vacation at the same time, they fuse into a knook.",
         "✅If your queen is next to your king you can use enjoyment to buy new units. After you buy them for three round the queen can only move like a king, but afterwards the unit arrives at a designated space where they can't be taken: J4 and J5. They are teleported on a free field to the left of them after at most two turns. If that fails the player who bought them loses. Pawn: 3 Enjoyment. Horsey/Bishop: 9 Enjoyment. Rook: 15 Enjoyment. Queen: 27 Enjoyment. Hybrid Units: less expensive*more expensive = Unit.",
@@ -68,22 +77,39 @@ If the communist revolution starts, churches are burned and lost, and you will n
     {
         if (Input.GetKeyDown(KeyCode.F5))
         {
-            perspectiveCamera.enabled = true;
-            mainCamera.enabled = false;
-            ct.isPaused = true;
-            Destroy(GameObject.FindGameObjectWithTag("cursor"));
+            ChangePerspective(true);
         }
         if (Input.GetKeyUp(KeyCode.F5))
         {
-            perspectiveCamera.enabled = false;
-            mainCamera.enabled = true;
-            ct.isPaused = false;
+            ChangePerspective(false);
         }
         if (cursorRule != null)
         {
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             cursorRule.transform.position = new Vector3(mousePos.x + 1.25f, mousePos.y - 1, -2.0f);
         }
+    }
+    private void ChangePerspective(bool x)
+    {
+        if (x)
+        {
+            perspectiveCamera.enabled = true;
+            mainCamera.enabled = false;
+            ct.isPaused = true;
+            Destroy(GameObject.FindGameObjectWithTag("cursor"));
+            gameObject.GetComponent<Canvas>().worldCamera = perspectiveCamera;
+        }
+        else
+        {
+            perspectiveCamera.enabled = false;
+            mainCamera.enabled = true;
+            ct.isPaused = false;
+            gameObject.GetComponent<Canvas>().worldCamera = mainCamera;
+        }
+    }
+    public void TogglePerspective()
+    {
+        ChangePerspective(!perspectiveCamera.enabled);
     }
     /// <summary>
     /// Creates an alert with the given title and text.
@@ -215,15 +241,75 @@ If the communist revolution starts, churches are burned and lost, and you will n
     }
     public void ToggleTileMap()
     {
-        if (controller.GetComponent<Controller>().currentPlayer == "black" && controller.GetComponent<Controller>().settings["flip_board"] == "true")
+        if (ct.currentPlayer == "black" && ct.settings["flip_board"] == "true")
         {
+            gameObject.transform.Find("camera_right").gameObject.SetActive(false);
+            gameObject.transform.Find("camera_left").gameObject.SetActive(true);
             whiteTilemap.SetActive(false);
             blackTilemap.SetActive(true);
         }
         else
         {
+            gameObject.transform.Find("camera_right").gameObject.SetActive(true);
+            gameObject.transform.Find("camera_left").gameObject.SetActive(false);
             whiteTilemap.SetActive(true);
             blackTilemap.SetActive(false);
         }
+    }
+
+    public void Gukesh()
+    {
+        gukeshConfirmationModal.SetActive(false);
+        //string color = "";
+        if (ct.catchGukesh)
+        {
+            gukeshModal.SetActive(true);
+        }
+        else
+        {
+            gukeshFail.SetActive(true);
+        }
+        if (ct.currentPlayer == "black")
+            ct.gukeshValidBlack = false;
+        else if (ct.currentPlayer == "white")
+            ct.gukeshValidWhite = false;
+        gukeshButton.GetComponent<Button>().interactable = false;
+    }
+    public void UpdateMoveCounter()
+    {
+        moveCounter.transform.Find("Halfmoves").GetComponent<TextMeshProUGUI>().text = "Half moves: " + ct.halfMove.ToString();
+        moveCounter.transform.Find("Move").GetComponent<TextMeshProUGUI>().text = "Move " + ct.move.ToString();
+    }
+    public void TrueEnding()
+    {
+        trueEnding.SetActive(true);
+    }
+    public void CommunistRevolution(string color)
+    {
+        communistRevolutionModal.SetActive(true);
+        communistRevolutionText.GetComponent<TextMeshProUGUI>().text = $@"Comrades of the glorious chessboard revolution,
+
+Today, we stand at the precipice of a new dawn, a dawn where the workers of this grand chessboard rise against the tyranny of the bourgeois pieces. In the midst of our struggle, we have witnessed a pivotal moment. Three brave pawns have fallen in the line of duty, sacrificing themselves for the greater good of our {color} army.
+
+These pawns, humble yet valiant, embody the spirit of our revolution. They are the unsung heroes who, with their unwavering dedication, have paved the way for our victory. Their sacrifice is not in vain, for it has weakened the grip of our adversaries and strengthened the resolve of our comrades.
+
+In their honor, we must press on with even greater determination. The fall of these pawns serves as a reminder of the price of freedom and the necessity of our cause. We will not let their sacrifices be forgotten. We will march forward, side by side, and ensure that the ideals of our revolution are realized.
+
+The {color} army stands united, ready to overcome any obstacle, ready to dismantle the structures of oppression piece by piece. We will not rest until every square on this board is liberated, until every piece enjoys the equality and justice that is their right.
+
+Comrades, let us honor the fallen pawns by continuing our struggle with unwavering fervor. Let us remember their bravery as we advance towards our ultimate goal. Together, we will triumph, and the chessboard will be transformed into a land of true equality and comradeship.
+
+Forward, to victory! For the fallen pawns! For the {color} army! For the revolution!";
+        PlayAudio("Soviet Anthem");
+    }
+    public void ToggleAudio()
+    {
+        audioEnabled = !audioEnabled;
+        if (audioEnabled) audioSources.transform.Find("Soviet Anthem").GetComponent<AudioSource>().volume = 1;
+        else audioSources.transform.Find("Soviet Anthem").GetComponent<AudioSource>().volume = 0;
+    }
+    public void PlayAudio(string name)
+    {
+        audioSources.transform.Find(name).GetComponent<AudioSource>().Play();
     }
 }

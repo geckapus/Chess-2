@@ -1,8 +1,5 @@
 using System.Collections;
-using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.WSA;
 
 public class MovePlate : MonoBehaviour
 {
@@ -68,16 +65,18 @@ public class MovePlate : MonoBehaviour
     {
         if ((indicator == null || indicator == "2squares" || indicator == "promote" || indicator.Contains("castle")) && !sc.GetComponent<Controller>().isPaused)
         {
-
+            sc.halfMove += 1;
             if (capturing)
             {
                 GameObject cp = sc.GetPosition(position.x, position.y);
+                if (cp.GetComponent<ChessPiece>().color == "white") sc.whiteCapturedPiece = true;
+                else sc.blackCapturedPiece = true;
                 if (cp.GetComponent<ChessPiece>().isKing)
                 {
                     int roll = Random.Range(1, 21);
                     if (roll == 20)
                     {
-                        uiControl.ChangeSavingThrow(true, roll, "Natural 20! Killing all checking pieces. However, you won't get to move your king on this move.");
+                        uiControl.ChangeSavingThrow(true, roll, "Natural 20! Killing all checking pieces.");
                         Debug.Log("Natural 20! Killing all checking pieces.");
                         cp = rf.gameObject;
                     }
@@ -114,7 +113,10 @@ public class MovePlate : MonoBehaviour
                 uiControl.UpdatePawnsLostCounter();
                 Destroy(cp);
                 sc.SetPositionEmpty(position.x, position.y);
+                sc.halfMove = 0;
+                uiControl.PlayAudio("capture");
             }
+            else uiControl.PlayAudio("move");
 
             //Making a move
 
@@ -172,6 +174,8 @@ public class MovePlate : MonoBehaviour
                 }
             }
 
+            if (rf.name.Contains("pawn"))
+                sc.halfMove = 0;
         }
     }
     /// <summary>

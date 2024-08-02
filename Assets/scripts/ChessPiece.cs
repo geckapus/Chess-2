@@ -38,8 +38,8 @@ public class ChessPiece : MonoBehaviour
     }
     public string color;
 
-    public Sprite black_pawn, black_rook, black_knight, black_bishop, black_queen, black_king, black_knook, black_antipawn;
-    public Sprite white_pawn, white_rook, white_knight, white_bishop, white_queen, white_king, white_knook, white_antipawn;
+    public Sprite black_pawn, black_rook, black_knight, black_bishop, black_queen, black_king, black_knook, black_antipawn, black_lenin;
+    public Sprite white_pawn, white_rook, white_knight, white_bishop, white_queen, white_king, white_knook, white_antipawn, white_lenin;
     public Sprite wallSprite;
     /*private void Start()
     {
@@ -91,10 +91,17 @@ public class ChessPiece : MonoBehaviour
                 canMove = false;
                 sr.color = new Color(0.0f, 0.0f, 0.0f, 0.3f);
                 break;
-
             case "wall":
                 sr.sprite = wallSprite;
                 color = "wall";
+                break;
+            case "black_lenin":
+                sr.sprite = black_lenin;
+                color = "black";
+                break;
+            case "white_lenin":
+                sr.sprite = white_lenin;
+                color = "white";
                 break;
         }
     }
@@ -231,19 +238,22 @@ public class ChessPiece : MonoBehaviour
     }
     private void OnMouseUp()
     {
-        Debug.Log("Mouse Up");
-        RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
-
-        if (hit.collider != null)
+        if (GameObject.FindGameObjectWithTag("cursor") != null)
         {
-            GameObject hitObject = hit.collider.gameObject;
-            if (hitObject.name == "MovePlate(Clone)")
+            Debug.Log("Mouse Up");
+            RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
+
+            if (hit.collider != null)
             {
-                hitObject.GetComponent<MovePlate>().OnMouseUp();
+                GameObject hitObject = hit.collider.gameObject;
+                if (hitObject.name == "MovePlate(Clone)")
+                {
+                    hitObject.GetComponent<MovePlate>().OnMouseUp();
+                }
+                Debug.Log("Target Position: " + hitObject.transform.position);
             }
-            Debug.Log("Target Position: " + hitObject.transform.position);
+            Destroy(GameObject.FindGameObjectWithTag("cursor"));
         }
-        Destroy(GameObject.FindGameObjectWithTag("cursor"));
     }
     /// <summary>
     /// Destroys all move plates in the scene, optionally destroying move indicators. Move indicators are purely visual, and are not used to move any pieces.

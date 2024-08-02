@@ -35,6 +35,10 @@ public class Controller : MonoBehaviour
     public int blackEnjoyment = 0;
     public int blackPawnsLost = 0;
     public int whitePawnsLost = 0;
+    public bool whiteCapturedPiece = false;
+    public bool blackCapturedPiece = false;
+    public int move = 1;
+    public int halfMove = 0;
     /// <summary>
     /// Toggles the flip board setting.
     /// </summary>
@@ -187,6 +191,7 @@ public class Controller : MonoBehaviour
     /// </summary>
     public void NextTurn()
     {
+        catchGukesh = false;
         if (anishMovePlate != null) // Destroy the anish move plate and the stolen pawn
         {
             Debug.Log(anishValidWhite + " " + anishValidBlack + " " + (currentPlayer == "white" ? anishValidWhite : anishValidBlack));
@@ -194,11 +199,19 @@ public class Controller : MonoBehaviour
             else anishValidBlack = false;
             RemovePieceAt(anishMovePlate.GetComponent<MovePlate>().position);
             Destroy(anishMovePlate);
+            catchGukesh = true;
         }
         this.currentPlayer = (this.currentPlayer == "white") ? "black" : "white"; // Change player
         ChessPiece.DestroyMovePlates(true); // Destroy all move plates, even move indicators
-        if (!(currentPlayer == "white" ? gukeshValidWhite : gukeshValidBlack)) uiControl.ChangeGukeshButton(false);
-        if (!(currentPlayer == "white" ? anishValidWhite : anishValidBlack)) uiControl.ChangeAnishButton(false, false);
+        Debug.Log("white " + gukeshValidWhite + " black " + gukeshValidBlack + " " + (currentPlayer == "white" ? gukeshValidWhite : gukeshValidBlack));
+        if (currentPlayer == "white" ? gukeshValidWhite : gukeshValidBlack) uiControl.ChangeGukeshButton(true);
+        else uiControl.ChangeGukeshButton(false);
+        if (currentPlayer == "white" ? anishValidWhite : anishValidBlack) uiControl.ChangeAnishButton(true, false);
+        else uiControl.ChangeAnishButton(false, false);
+        if (currentPlayer == "white") move++;
+        //if ((currentPlayer == "white" ? whitePawnsLost : blackPawnsLost) >= 3) CommunistRevolution();
+        CommunistRevolution();
+        uiControl.UpdateMoveCounter();
         foreach (GameObject piece in board) //Go through all pieces
         {
             if (piece != null)
@@ -312,6 +325,7 @@ public class Controller : MonoBehaviour
             }
         }
         uiControl.UpdateEnjoymentCounter(); //update the enjoyment counter on the screen
+        Debug.Log(PositionToFEN());
     }
     public void RemovePieceAt(Vector2Int position)
     {
@@ -321,6 +335,10 @@ public class Controller : MonoBehaviour
             Destroy(board[position.x, position.y]);
         }
         SetPositionEmpty(position.x, position.y);
+    }
+    public void RemovePiece(GameObject piece)
+    {
+        RemovePieceAt(piece.GetComponent<ChessPiece>().Position);
     }
     public void ForceEnPassant(GameObject piece)
     {
@@ -338,6 +356,8 @@ public class Controller : MonoBehaviour
         RemovePieceAt(new Vector2Int(cp.Position.x, cp.Position.y + (cp.color == "white" ? -1 : 1)));
         uiControl.ChangeEnPassantModal(true);
         StartCoroutine(WaitForNextTurn(0.3f));
+        if (cp.color == "white") blackPawnsLost++;
+        else whitePawnsLost++;
     }
     public void DoubleEnPassant(GameObject left, GameObject right, GameObject enPassant)
     {
@@ -419,6 +439,7 @@ public class Controller : MonoBehaviour
     }
     public void CommunistRevolution()
     {
+        uiControl.CommunistRevolution(currentPlayer);
         //TODO
     }
     /// <summary>
@@ -456,10 +477,14 @@ public class Controller : MonoBehaviour
     {
         if (gameOver && Input.GetMouseButtonDown(1))
         {
-            Debug.Log("Restart");
-            gameOver = false;
-            SceneManager.LoadScene("Game");
+            Restart();
         }
+    }
+    public void Restart()
+    {
+        Debug.Log("Restart");
+        gameOver = false;
+        SceneManager.LoadScene("Game");
     }
     /// <summary>
     /// Creates a flash effect at the specified position.
@@ -511,45 +536,150 @@ public class Controller : MonoBehaviour
     {
         gameOver = true;
         Debug.Log("Winner: " + winner);
-        gameOverText.SetActive(true);
-        gameOverText.transform.Find("Title").GetComponent<TextMeshProUGUI>().text = (winner == "white" ? "White" : "Black") + " Wins!";
-        string quote = "Did it feel good actually having to take the king before winning? Don't you agree it should have always been this way?";
-        switch (UnityEngine.Random.Range(0, 10))
+        if (!(winner == "white" ? whiteCapturedPiece : blackCapturedPiece))
         {
-            case 0:
-                quote = "Google En Passant";
-                break;
-            case 1:
-                quote = "Holy Hell!";
-                break;
-            case 2:
-                quote = "New response just dropped!";
-                break;
-            case 3:
-                quote = "Actual Zombie!";
-                break;
-            case 4:
-                quote = "Call the exorcist!";
-                break;
-            case 5:
-                quote = "New response just dropped!";
-                break;
-            case 6:
-                quote = "Bishop goes on vacation, never comes back";
-                break;
-            case 7:
-                quote = "Pawn storm incoming!";
-                break;
-            case 8:
-                quote = "King sacrifice anyone?";
-                break;
-            case 9:
-                quote = "Rook in the corner, plotting world domination";
-                break;
-            case 10:
-                quote = "Ignite the Chessboard!";
-                break;
+            uiControl.TrueEnding();
         }
-        gameOverText.transform.Find("Quote").GetComponent<TextMeshProUGUI>().text = "\"" + quote + "\"";
+        else
+        {
+            gameOverText.SetActive(true);
+            gameOverText.transform.Find("Title").GetComponent<TextMeshProUGUI>().text = (winner == "white" ? "White" : "Black") + " Wins!";
+            string quote = "Did it feel good actually having to take the king before winning? Don't you agree it should have always been this way?";
+            switch (UnityEngine.Random.Range(0, 10))
+            {
+                case 0:
+                    quote = "Google En Passant";
+                    break;
+                case 1:
+                    quote = "Holy Hell!";
+                    break;
+                case 2:
+                    quote = "New response just dropped!";
+                    break;
+                case 3:
+                    quote = "Actual Zombie!";
+                    break;
+                case 4:
+                    quote = "Call the exorcist!";
+                    break;
+                case 5:
+                    quote = "New response just dropped!";
+                    break;
+                case 6:
+                    quote = "Bishop goes on vacation, never comes back";
+                    break;
+                case 7:
+                    quote = "Pawn storm incoming!";
+                    break;
+                case 8:
+                    quote = "King sacrifice anyone?";
+                    break;
+                case 9:
+                    quote = "Rook in the corner, plotting world domination";
+                    break;
+                case 10:
+                    quote = "Ignite the Chessboard!";
+                    break;
+            }
+            gameOverText.transform.Find("Quote").GetComponent<TextMeshProUGUI>().text = "\"" + quote + "\"";
+        }
+
+    }
+
+    public string PositionToFEN()
+    {
+        string result = "";
+        int consecutiveNullCount = 0;
+
+        for (int r = 7; r >= 0; r--)
+        {
+            for (int c = 0; c <= 7; c++)
+            {
+                if (c > 7) continue;
+                string name = "";
+                if (board[c, r] != null)
+                    name = board[c, r].GetComponent<ChessPiece>().name;
+                if (board[c, r] == null || name.Contains("enPassant") || name.Contains("wall") || name.Contains("knook") || name.Contains("antipawn"))
+                {
+                    consecutiveNullCount++;
+                }
+                else
+                {
+                    if (consecutiveNullCount > 0)
+                    {
+                        result += consecutiveNullCount.ToString();
+                        consecutiveNullCount = 0;
+                    }
+
+                    switch (board[c, r].name)
+                    {
+                        case "white_pawn":
+                            result += "P";
+                            break;
+                        case "white_rook":
+                            result += "R";
+                            break;
+                        case "white_knight":
+                            result += "N";
+                            break;
+                        case "white_bishop":
+                            result += "B";
+                            break;
+                        case "white_queen":
+                            result += "Q";
+                            break;
+                        case "white_king":
+                            result += "K";
+                            break;
+                        case "black_pawn":
+                            result += "p";
+                            break;
+                        case "black_rook":
+                            result += "r";
+                            break;
+                        case "black_knight":
+                            result += "n";
+                            break;
+                        case "black_bishop":
+                            result += "b";
+                            break;
+                        case "black_queen":
+                            result += "q";
+                            break;
+                        case "black_king":
+                            result += "k";
+                            break;
+                    }
+                }
+            }
+
+            if (consecutiveNullCount > 0)
+            {
+                result += consecutiveNullCount.ToString();
+                consecutiveNullCount = 0;
+            }
+
+            if (r > 0)
+            {
+                result += "/";
+            }
+        }
+        result += "_" + (currentPlayer == "white" ? "w" : "b") + "_-_";
+        bool enPassant = false;
+        foreach (GameObject piece in board)
+        {
+            if (piece == null) continue;
+            ChessPiece cp = piece.GetComponent<ChessPiece>();
+            if (cp.name.Contains("enPassant"))
+            {
+                result += (char)(cp.Position.x + 97);
+                result += cp.Position.y + 1;
+                enPassant = true;
+            }
+        }
+        if (!enPassant) result += "-";
+        result += "_" + halfMove + "_" + move;
+
+        return result;
     }
 }
