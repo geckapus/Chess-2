@@ -316,6 +316,8 @@ public class ChessPiece : MonoBehaviour
                 break;
             case "black_king":
             case "white_king":
+            case "black_lenin":
+            case "white_lenin":
                 SurroundMovePlate();
                 break;
             case "black_rook":

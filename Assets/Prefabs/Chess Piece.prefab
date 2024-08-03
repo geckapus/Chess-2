@@ -122,6 +122,7 @@ MonoBehaviour:
   black_king: {fileID: 21300000, guid: 9daa0f4c84350814b8d6673179bc61ff, type: 3}
   black_knook: {fileID: 21300000, guid: 9b05aa05a27297d41a594c2ba1424837, type: 3}
   black_antipawn: {fileID: 21300000, guid: 00726b52f60ed274187a064cb7a9d8db, type: 3}
+  black_lenin: {fileID: 21300000, guid: 20206c6377ab3eb40bbce544cc0422d0, type: 3}
   white_pawn: {fileID: 21300000, guid: b4aa6cb49d7329f42a0870956a2812bd, type: 3}
   white_rook: {fileID: 21300000, guid: 3cb2db9367646dd4986a455bf4b69621, type: 3}
   white_knight: {fileID: 21300000, guid: 53eb12905e0f11442b34464c24db2a5b, type: 3}
@@ -130,6 +131,7 @@ MonoBehaviour:
   white_king: {fileID: 21300000, guid: 6cc37972ea158d149bd8976aa7602f11, type: 3}
   white_knook: {fileID: 21300000, guid: 1aa573977bd828a40b982b4c1a85348d, type: 3}
   white_antipawn: {fileID: 21300000, guid: 1fbbda5c44810384ab625c14aab6c3b1, type: 3}
+  white_lenin: {fileID: 21300000, guid: 20206c6377ab3eb40bbce544cc0422d0, type: 3}
   wallSprite: {fileID: 21300000, guid: 018ac1312b329f043ab04470a0449f6a, type: 3}
 --- !u!61 &-2046400845122052794
 BoxCollider2D:

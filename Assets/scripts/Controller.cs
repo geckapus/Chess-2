@@ -209,8 +209,8 @@ public class Controller : MonoBehaviour
         if (currentPlayer == "white" ? anishValidWhite : anishValidBlack) uiControl.ChangeAnishButton(true, false);
         else uiControl.ChangeAnishButton(false, false);
         if (currentPlayer == "white") move++;
-        //if ((currentPlayer == "white" ? whitePawnsLost : blackPawnsLost) >= 3) CommunistRevolution();
-        CommunistRevolution();
+        if ((currentPlayer == "white" ? whitePawnsLost : blackPawnsLost) >= 3) CommunistRevolution();
+        //CommunistRevolution();
         uiControl.UpdateMoveCounter();
         foreach (GameObject piece in board) //Go through all pieces
         {
@@ -440,7 +440,24 @@ public class Controller : MonoBehaviour
     public void CommunistRevolution()
     {
         uiControl.CommunistRevolution(currentPlayer);
-        //TODO
+        foreach (GameObject piece in board)
+        {
+            if (piece != null && piece.GetComponent<ChessPiece>().color == currentPlayer)
+            {
+                if (piece.GetComponent<ChessPiece>().isKing)
+                {
+                    Debug.Log(name);
+                    piece.name = currentPlayer + "_lenin";
+                    Debug.Log(piece.name);
+                    piece.GetComponent<ChessPiece>().Activate(piece);
+                    return;
+                }
+                else if (piece.name.Contains("queen"))
+                {
+                    RemovePiece(piece);
+                }
+            }
+        }
     }
     /// <summary>
     /// Moves a game object smoothly from its current position to a new position over a specified duration.
@@ -681,5 +698,22 @@ public class Controller : MonoBehaviour
         result += "_" + halfMove + "_" + move;
 
         return result;
+    }
+    private int numRolls = 0;
+    public void ConvertPawn(string name)
+    {
+        foreach (GameObject piece in board)
+        {
+            if (piece != null && piece.name.Contains("pawn") && piece.GetComponent<ChessPiece>().color == currentPlayer)
+            {
+                Debug.Log(name);
+                piece.name = currentPlayer + "_" + name;
+                Debug.Log(piece.name);
+                piece.GetComponent<ChessPiece>().Activate(piece);
+                numRolls++;
+                break;
+            }
+        }
+        if (numRolls == 5) uiControl.ChangeD20UpgradeOK(true);
     }
 }
