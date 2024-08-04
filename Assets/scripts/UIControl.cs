@@ -10,6 +10,7 @@ public class UIControl : MonoBehaviour
     public GameObject dayOfWeekText;
     public GameObject enjoymentCounter;
     public GameObject controller;
+    private Religion religion;
     public GameObject shopButton;
     public GameObject shop;
     public GameObject flipBoardToggle;
@@ -37,6 +38,7 @@ public class UIControl : MonoBehaviour
     public GameObject communistRevolutionText;
     public GameObject audioSources;
     public GameObject d20UpgradeOK;
+    public GameObject worshipCounter;
     public bool audioEnabled = true;
     public string[] rules = new string[] { //List of all rules, used for Rule Alerts, which are activated by other scripts when a rule is triggered
         "Rules",
@@ -69,6 +71,7 @@ If the communist revolution starts, churches are burned and lost, and you will n
 
     private void Start() //initializes variables
     {
+        religion = GameObject.FindGameObjectWithTag("Religion").GetComponent<Religion>();
         ct = controller.GetComponent<Controller>();
         System.DateTime currentDate = System.DateTime.Now;
         System.DayOfWeek currentDay = currentDate.DayOfWeek;
@@ -142,6 +145,11 @@ If the communist revolution starts, churches are burned and lost, and you will n
     {
         enjoymentCounter.transform.Find("White").GetComponent<TextMeshProUGUI>().text = "White - " + ct.whiteEnjoyment.ToString();
         enjoymentCounter.transform.Find("Black").GetComponent<TextMeshProUGUI>().text = "Black - " + ct.blackEnjoyment.ToString();
+    }
+    public void UpdateWorshipCounter()
+    {
+        worshipCounter.transform.Find("White").GetComponent<TextMeshProUGUI>().text = "White - " + religion.whiteWorship.ToString();
+        worshipCounter.transform.Find("Black").GetComponent<TextMeshProUGUI>().text = "Black - " + religion.blackWorship.ToString();
     }
     /// <summary>
     /// Updates the text of the "White" and "Black" TextMeshProUGUI components in the "pawnsLostCounter" GameObject.

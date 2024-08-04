@@ -38,8 +38,8 @@ public class ChessPiece : MonoBehaviour
     }
     public string color;
 
-    public Sprite black_pawn, black_rook, black_knight, black_bishop, black_queen, black_king, black_knook, black_antipawn, black_lenin;
-    public Sprite white_pawn, white_rook, white_knight, white_bishop, white_queen, white_king, white_knook, white_antipawn, white_lenin;
+    public Sprite black_pawn, black_rook, black_knight, black_bishop, black_queen, black_king, black_knook, black_antipawn, black_lenin, black_church;
+    public Sprite white_pawn, white_rook, white_knight, white_bishop, white_queen, white_king, white_knook, white_antipawn, white_lenin, white_church;
     public Sprite wallSprite;
     /*private void Start()
     {
@@ -66,9 +66,7 @@ public class ChessPiece : MonoBehaviour
             case "black_queen": sr.sprite = black_queen; color = "black"; break;
             case "black_knook": sr.sprite = black_knook; color = "black"; break;
             case "black_antipawn": sr.sprite = black_antipawn; color = "black"; break;
-            case "black_king":
-                sr.sprite = black_king; color = "black";
-                isKing = true; break;
+            case "black_king": sr.sprite = black_king; color = "black"; isKing = true; break;
 
             case "white_pawn": sr.sprite = white_pawn; color = "white"; break;
             case "white_rook": sr.sprite = white_rook; color = "white"; break;
@@ -77,32 +75,15 @@ public class ChessPiece : MonoBehaviour
             case "white_queen": sr.sprite = white_queen; color = "white"; break;
             case "white_knook": sr.sprite = white_knook; color = "white"; break;
             case "white_antipawn": sr.sprite = white_antipawn; color = "white"; break;
-            case "white_king":
-                sr.sprite = white_king; color = "white";
-                isKing = true; break;
+            case "white_king": sr.sprite = white_king; color = "white"; isKing = true; break;
 
-            case "black_enPassant":
-                sr.sprite = black_pawn; color = "black";
-                canMove = false;
-                sr.color = new Color(0.0f, 0.0f, 0.0f, 0.3f);
-                break;
-            case "white_enPassant":
-                sr.sprite = black_pawn; color = "white";
-                canMove = false;
-                sr.color = new Color(0.0f, 0.0f, 0.0f, 0.3f);
-                break;
-            case "wall":
-                sr.sprite = wallSprite;
-                color = "wall";
-                break;
-            case "black_lenin":
-                sr.sprite = black_lenin;
-                color = "black";
-                break;
-            case "white_lenin":
-                sr.sprite = white_lenin;
-                color = "white";
-                break;
+            case "black_enPassant": sr.sprite = black_pawn; color = "black"; canMove = false; sr.color = new Color(0.0f, 0.0f, 0.0f, 0.3f); break;
+            case "white_enPassant": sr.sprite = black_pawn; color = "white"; canMove = false; sr.color = new Color(0.0f, 0.0f, 0.0f, 0.3f); break;
+            case "wall": sr.sprite = wallSprite; color = "wall"; break;
+            case "black_lenin": sr.sprite = black_lenin; color = "black"; break;
+            case "white_lenin": sr.sprite = white_lenin; color = "white"; break;
+            case "black_church": sr.sprite = black_church; color = "black"; break;
+            case "white_church": sr.sprite = white_church; color = "white"; break;
         }
     }
     /// <summary>
@@ -285,6 +266,8 @@ public class ChessPiece : MonoBehaviour
         {
             case "black_queen":
             case "white_queen":
+            case "black_church":
+            case "white_church":
                 if (pregnantWith == "") //If the queen is pregnant, it moves like a king
                 {
                     LineMovePlate(1, 0);
@@ -414,10 +397,18 @@ public class ChessPiece : MonoBehaviour
             x += xIncrement;
             y += yIncrement;
         }
-        if (cs.PositionWithinBounds(x, y) && cs.GetPosition(x, y) != null && cs.GetPosition(x, y).GetComponent<ChessPiece>().color != this.color)
+        if (cs.PositionWithinBounds(x, y) && cs.GetPosition(x, y))
         {
-            if (cs.GetPosition(x, y).GetComponent<ChessPiece>().color != "wall")
+            if (cs.GetPosition(x, y).GetComponent<ChessPiece>().color != this.color && cs.GetPosition(x, y).GetComponent<ChessPiece>().color != "wall")
                 MovePlateSpawn(x, y, true);
+            else if (cs.GetPosition(x, y).GetComponent<ChessPiece>().color == this.color)
+            {
+                GameObject piece = cs.GetPosition(x, y);
+                if (name.Contains("bishop") && piece.name.Contains("rook"))
+                    MovePlateSpawn(x, y, true, "fuse_church");
+                if (name.Contains("rook") && piece.name.Contains("bishop"))
+                    MovePlateSpawn(x, y, true, "fuse_church");
+            }
         }
     }
     /// <summary>

@@ -11,6 +11,7 @@ TagManager:
   - cursor
   - Promotion Options
   - Canvas
+  - Religion
   layers:
   - Default
   - TransparentFX

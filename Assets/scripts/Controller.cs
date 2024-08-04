@@ -15,6 +15,7 @@ public class Controller : MonoBehaviour
     private GameObject[] playerWhite = new GameObject[16];
     public GameObject gameOverText;
     public GameObject canvas;
+    private Religion religion;
     private UIControl uiControl;
     public GameObject flash;
     //Settings
@@ -81,6 +82,7 @@ public class Controller : MonoBehaviour
     /// </summary>
     public void Start()
     {
+        religion = GameObject.FindGameObjectWithTag("Religion").GetComponent<Religion>();
         uiControl = canvas.GetComponent<UIControl>();
         playerWhite = new GameObject[] { Create("white_rook",  0, 0), Create("white_knight",1, 0),
             Create("white_bishop",2, 0), Create("white_queen", 3, 0), Create("white_king",  4, 0),
@@ -210,7 +212,7 @@ public class Controller : MonoBehaviour
         else uiControl.ChangeAnishButton(false, false);
         if (currentPlayer == "white") move++;
         if ((currentPlayer == "white" ? whitePawnsLost : blackPawnsLost) >= 3) CommunistRevolution();
-        //CommunistRevolution();
+        religion.NextTurn();
         uiControl.UpdateMoveCounter();
         foreach (GameObject piece in board) //Go through all pieces
         {

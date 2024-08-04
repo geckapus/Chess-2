@@ -101,6 +101,7 @@ MonoBehaviour:
   position: {x: 0, y: 0}
   capturing: 0
   indicator: 0
+  plateSprite: {fileID: 21300000, guid: e7b0bcc2c8f473f4bb342e3755e79361, type: 3}
 --- !u!61 &237015382802975322
 BoxCollider2D:
   m_ObjectHideFlags: 0

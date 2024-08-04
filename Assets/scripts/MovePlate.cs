@@ -11,6 +11,7 @@ public class MovePlate : MonoBehaviour
     private ChessPiece rf;
     private Controller sc;
     private UIControl uiControl;
+    public Sprite plateSprite;
 
     private void Start()
     {
@@ -33,8 +34,13 @@ public class MovePlate : MonoBehaviour
         if (indicator == "move")
         {
             gameObject.transform.position = new Vector3(gameObject.transform.position.x, gameObject.transform.position.y, 0.5f);
-            gameObject.GetComponent<SpriteRenderer>().color = new Color(1.0f, 1.0f, 1.0f, 1.0f);
+            gameObject.GetComponent<SpriteRenderer>().color = new Color(1.0f, 1.0f, 0.0f, 1.0f);
         }
+        if (indicator != null && indicator.Contains("fuse"))
+        {
+            gameObject.GetComponent<SpriteRenderer>().color = new Color(1.0f, 0.0f, 1.0f, 1.0f);
+        }
+        if (indicator == null || indicator == "2squares") gameObject.GetComponent<SpriteRenderer>().sprite = plateSprite;
     }
     public void ShowMovePlates(bool x)
     {
@@ -63,11 +69,12 @@ public class MovePlate : MonoBehaviour
     /// </summary>
     public void OnMouseUp()
     {
-        if ((indicator == null || indicator == "2squares" || indicator == "promote" || indicator.Contains("castle")) && !sc.GetComponent<Controller>().isPaused)
+        if (indicator == null || indicator == "2squares" || indicator == "promote" || indicator.Contains("castle") || indicator.Contains("fuse") && !sc.GetComponent<Controller>().isPaused)
         {
             sc.halfMove += 1;
             if (capturing)
             {
+                Debug.Log("capturing: " + capturing);
                 GameObject cp = sc.GetPosition(position.x, position.y);
                 if (cp.GetComponent<ChessPiece>().color == "white") sc.whiteCapturedPiece = true;
                 else sc.blackCapturedPiece = true;
@@ -111,8 +118,12 @@ public class MovePlate : MonoBehaviour
                     else sc.blackPawnsLost++;
                 }
                 uiControl.UpdatePawnsLostCounter();
-                Destroy(cp);
-                sc.SetPositionEmpty(position.x, position.y);
+                sc.RemovePieceAt(position);
+                if (indicator == "fuse_church")
+                {
+                    rf.name = rf.color + "_church";
+                    rf.Activate(rf.gameObject);
+                }
                 sc.halfMove = 0;
                 uiControl.PlayAudio("capture");
             }
@@ -150,7 +161,10 @@ public class MovePlate : MonoBehaviour
                 rf.Position = position;
 
                 sc.SetPosition(Reference);
-                sc.NextTurn();
+                if (indicator == "fuse_church")
+                    GameObject.FindGameObjectWithTag("Religion").GetComponent<Religion>().OnNewChurch();
+                else
+                    sc.NextTurn();
 
                 rf.MovePlateSpawn(rf.previousPosition.x, rf.previousPosition.y, false, "move");
                 rf.MovePlateSpawn(rf.Position.x, rf.Position.y, false, "move");
