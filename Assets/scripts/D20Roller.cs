@@ -1,8 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
-using Unity.VisualScripting;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 public class D20Roller : MonoBehaviour
@@ -14,7 +12,7 @@ public class D20Roller : MonoBehaviour
     private GameObject number;
     private GameObject result;
     // Start is called before the first frame update
-    void Start()
+    public void Start()
     {
         controller = GameObject.FindGameObjectWithTag("GameController").GetComponent<Controller>();
         quote = transform.Find("Quote").gameObject;
@@ -35,5 +33,12 @@ public class D20Roller : MonoBehaviour
         result.SetActive(true);
         number.SetActive(true);
         controller.ConvertPawn(conversion);
+    }
+    public void Reset()
+    {
+        rollButton.SetActive(true);
+        quote.SetActive(false);
+        result.SetActive(false);
+        number.SetActive(false);
     }
 }

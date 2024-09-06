@@ -13,7 +13,7 @@ public class ChessPiece : MonoBehaviour
     public GameObject movePlate;
     public GameObject cursorPiece;
     private GameObject cursor;
-    public GameObject po;
+    public GameObject promotionOptions;
     public bool canMove = true;
     public bool promoted = false;
     public bool isKing = false;
@@ -23,6 +23,7 @@ public class ChessPiece : MonoBehaviour
     public int daysPregnant = 0;
     public int daysAfterBirth = 0;
     public string pregnantWith = "";
+    public bool inJail = false;
 
     private Vector2Int position = new Vector2Int(-1, -1);
     public Vector2Int previousPosition = new Vector2Int(-1, -1);
@@ -77,8 +78,8 @@ public class ChessPiece : MonoBehaviour
             case "white_antipawn": sr.sprite = white_antipawn; color = "white"; break;
             case "white_king": sr.sprite = white_king; color = "white"; isKing = true; break;
 
-            case "black_enPassant": sr.sprite = black_pawn; color = "black"; canMove = false; sr.color = new Color(0.0f, 0.0f, 0.0f, 0.3f); break;
-            case "white_enPassant": sr.sprite = black_pawn; color = "white"; canMove = false; sr.color = new Color(0.0f, 0.0f, 0.0f, 0.3f); break;
+            case "black_enPassant": sr.sprite = black_pawn; color = "black"; canMove = false; sr.color = Color.clear; break;
+            case "white_enPassant": sr.sprite = black_pawn; color = "white"; canMove = false; sr.color = Color.clear; break;
             case "wall": sr.sprite = wallSprite; color = "wall"; break;
             case "black_lenin": sr.sprite = black_lenin; color = "black"; break;
             case "white_lenin": sr.sprite = white_lenin; color = "white"; break;
@@ -160,7 +161,7 @@ public class ChessPiece : MonoBehaviour
         else
             //StartCoroutine(controller.GetComponent<Controller>().MoveObject(gameObject, new Vector3(position.x - 3.5f, position.y - 3.5f, -0.1f), 0.3f));
             transform.position = new Vector3(position.x - 3.5f, position.y - 3.5f, -0.1f);
-        if (this.name == "black_enPassant") //DEBUGGING BLACK EN PASSANT
+        if (name == "black_enPassant") //DEBUGGING BLACK EN PASSANT
         {
             if (GameObject.FindGameObjectWithTag("GameController").GetComponent<Controller>().settings["flip_board"] == "true")
             {
@@ -209,7 +210,7 @@ public class ChessPiece : MonoBehaviour
         }
         else if (controller.GetComponent<Controller>().anishMode && controller.GetComponent<Controller>().currentPlayer != color && !controller.GetComponent<Controller>().IsGameOver() && !controller.GetComponent<Controller>().isPaused)
         {
-            if (name.Contains("pawn"))
+            if (name.Contains("pawn") || (Controller.Condition("religion_Gavin") && isKing == false))
             {
                 DestroyMovePlates(false, true);
 
@@ -221,7 +222,7 @@ public class ChessPiece : MonoBehaviour
     {
         if (GameObject.FindGameObjectWithTag("cursor") != null)
         {
-            Debug.Log("Mouse Up");
+            //Debug.Log("Mouse Up");
             RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
 
             if (hit.collider != null)
@@ -231,7 +232,7 @@ public class ChessPiece : MonoBehaviour
                 {
                     hitObject.GetComponent<MovePlate>().OnMouseUp();
                 }
-                Debug.Log("Target Position: " + hitObject.transform.position);
+                //Debug.Log("Target Position: " + hitObject.transform.position);
             }
             Destroy(GameObject.FindGameObjectWithTag("cursor"));
         }
@@ -240,12 +241,12 @@ public class ChessPiece : MonoBehaviour
     /// Destroys all move plates in the scene, optionally destroying move indicators. Move indicators are purely visual, and are not used to move any pieces.
     /// </summary>
     /// <param name="destroyMoveIndicators">If true, move indicators will also be destroyed.</param>
-    public static void DestroyMovePlates(bool destroyMoveIndicators = false, bool destroyAnish = false)
+    public static void DestroyMovePlates(bool destroyMoveIndicators = false, bool destroyAnish = false, bool destroyAISuggestions = false)
     {
         GameObject[] movePlates = GameObject.FindGameObjectsWithTag("MovePlate");
         foreach (GameObject movePlate in movePlates)
         {
-            if ((movePlate.GetComponent<MovePlate>().indicator != "move" || destroyMoveIndicators) && (movePlate.GetComponent<MovePlate>().indicator != "anish" || destroyAnish))
+            if ((movePlate.GetComponent<MovePlate>().indicator != "move" || destroyMoveIndicators) && (movePlate.GetComponent<MovePlate>().indicator != "anish" || destroyAnish) && (movePlate.GetComponent<MovePlate>().indicator != "ai" || destroyAISuggestions))
             {
                 Destroy(movePlate);
             }
@@ -284,15 +285,18 @@ public class ChessPiece : MonoBehaviour
             case "black_knight":
             case "white_knight":
                 LMovePlate();
+                if (Controller.Condition("religion_Knook"))
+                    FuseMovePlate("rook", "knook");
                 break;
             case "black_bishop":
             case "white_bishop":
-                if (!controller.GetComponent<Controller>().PositionOnVacation(this.position.x, this.position.y)) // Bishops cannot move if on vacation
+                if (!controller.GetComponent<Controller>().PositionOnVacation(position.x, position.y)) // Bishops cannot move if on vacation
                 {
                     LineMovePlate(1, 1);
                     LineMovePlate(1, -1);
                     LineMovePlate(-1, 1);
                     LineMovePlate(-1, -1);
+                    FuseMovePlate("rook", "church");
                 }
                 else
                     UIControl.CreateAlert("Rule 14", "Bishops cannot come back from vacation");
@@ -301,7 +305,10 @@ public class ChessPiece : MonoBehaviour
             case "white_king":
             case "black_lenin":
             case "white_lenin":
-                SurroundMovePlate();
+                if (inJail)
+                    UIControl.CreateAlert("Rule 20", "Your king is in jail! No escape game mechanic has yet been implemented.");
+                else
+                    SurroundMovePlate();
                 break;
             case "black_rook":
             case "white_rook":
@@ -309,6 +316,9 @@ public class ChessPiece : MonoBehaviour
                 LineMovePlate(0, 1);
                 LineMovePlate(-1, 0);
                 LineMovePlate(0, -1);
+                FuseMovePlate("bishop", "church");
+                if (Controller.Condition("religion_Knook"))
+                    FuseMovePlate("knight", "knook");
                 break;
             case "black_knook":
             case "white_knook":
@@ -374,6 +384,40 @@ public class ChessPiece : MonoBehaviour
             }
         }
     }
+    private void FuseMovePlate(string otherPiece, string fuse)
+    {
+        Controller sc = controller.GetComponent<Controller>();
+        int x = position.x, y = position.y;
+        for (int i = 0; i < 4; i++)
+        {
+            switch (i)
+            {
+                case 0:
+                    x = position.x + 1;
+                    y = position.y;
+                    break;
+                case 1:
+                    x = position.x - 1;
+                    y = position.y;
+                    break;
+                case 2:
+                    x = position.x;
+                    y = position.y + 1;
+                    break;
+                case 3:
+                    x = position.x;
+                    y = position.y - 1;
+                    break;
+            }
+            if (sc.PositionWithinBounds(x, y) && sc.GetPosition(x, y) != null)
+            {
+                if (sc.GetPosition(x, y).GetComponent<ChessPiece>().name == color + "_" + otherPiece)
+                {
+                    MovePlateSpawn(x, y, true, "fuse_" + fuse);
+                }
+            }
+        }
+    }
     /// <summary>
     /// Generates a move plate along a line in the chessboard.
     /// </summary>
@@ -391,24 +435,17 @@ public class ChessPiece : MonoBehaviour
         int x = position.x + xIncrement;
         int y = position.y + yIncrement;
 
-        while (cs.PositionWithinBounds(x, y) && cs.GetPosition(x, y) == null)
+        while (cs.PositionWithinBounds(x, y) && (cs.GetPosition(x, y) == null || cs.GetPosition(x, y).name.Contains("enPassant")))
         {
             MovePlateSpawn(x, y);
             x += xIncrement;
             y += yIncrement;
         }
-        if (cs.PositionWithinBounds(x, y) && cs.GetPosition(x, y))
+        if (cs.PositionWithinBounds(x, y) && cs.GetPosition(x, y) != null)
         {
-            if (cs.GetPosition(x, y).GetComponent<ChessPiece>().color != this.color && cs.GetPosition(x, y).GetComponent<ChessPiece>().color != "wall")
+            var cp = cs.GetPosition(x, y).GetComponent<ChessPiece>();
+            if (cp.color != this.color && cp.color != "wall" && !cp.gameObject.name.Contains("enPassant"))
                 MovePlateSpawn(x, y, true);
-            else if (cs.GetPosition(x, y).GetComponent<ChessPiece>().color == this.color)
-            {
-                GameObject piece = cs.GetPosition(x, y);
-                if (name.Contains("bishop") && piece.name.Contains("rook"))
-                    MovePlateSpawn(x, y, true, "fuse_church");
-                if (name.Contains("rook") && piece.name.Contains("bishop"))
-                    MovePlateSpawn(x, y, true, "fuse_church");
-            }
         }
     }
     /// <summary>
@@ -483,7 +520,7 @@ public class ChessPiece : MonoBehaviour
         {
             GameObject cp = sc.GetPosition(x, y);
 
-            if (cp == null)
+            if (cp == null || cp.name.Contains("enPassant"))
             {
                 MovePlateSpawn(x, y);
             }
@@ -509,6 +546,7 @@ public class ChessPiece : MonoBehaviour
         bool promote = false;
         Controller sc = controller.GetComponent<Controller>();
         if (y == 0 || y == 7) promote = true;
+        Debug.Log(promote);
         if (sc.PositionWithinBounds(x, y) && sc.GetPosition(x, y) == null)
         {
             // Check double square move for first move
@@ -519,17 +557,29 @@ public class ChessPiece : MonoBehaviour
             }
             MovePlateSpawn(x, y, false, promote ? "promote" : null);
         }
-
-        if (sc.PositionWithinBounds(x + 1, y) && sc.GetPosition(x + 1, y) != null && sc.GetPosition(x + 1, y).GetComponent<ChessPiece>().color != color)
+        void Diagonal(int xVal, bool onlyEnPassant = false)
         {
-            if (sc.GetPosition(x + 1, y).GetComponent<ChessPiece>().color != "wall")
-                MovePlateSpawn(x + 1, y, true, promote ? "promote" : null);
+            if (!sc.PositionWithinBounds(xVal, y)) return;
+            var position = sc.GetPosition(xVal, y);
+            if (position == null || position.GetComponent<ChessPiece>().color == color) return;
+            if (onlyEnPassant && !position.name.Contains("enPassant")) return;
+            if (position.GetComponent<ChessPiece>().color == "wall") return;
+            MovePlateSpawn(xVal, y, true, promote ? "promote" : null);
         }
-
-        if (sc.PositionWithinBounds(x - 1, y) && sc.GetPosition(x - 1, y) != null && sc.GetPosition(x - 1, y).GetComponent<ChessPiece>().color != color)
+        if (Controller.Condition("religion_Gavin"))
         {
-            if (sc.GetPosition(x - 1, y).GetComponent<ChessPiece>().color != "wall")
-                MovePlateSpawn(x - 1, y, true, promote ? "promote" : null);
+            for (int i = 0; i < 8; i++)
+            {
+                if (i == x - 1 || x == x + 1)
+                    Diagonal(i);
+                else
+                    Diagonal(i, true);
+            }
+        }
+        else
+        {
+            Diagonal(x + 1);
+            Diagonal(x - 1);
         }
     }
     /// <summary>
@@ -539,10 +589,10 @@ public class ChessPiece : MonoBehaviour
     /// <param name="piece">The name of the piece to promote to.</param>
     public void Promote(string piece)
     {
-        Debug.Log(piece);
+        //Debug.Log(piece);
         this.name = piece;
         Activate(gameObject);
-        po.SetActive(false);
+        promotionOptions.SetActive(false);
         promoted = true;
     }
     /// <summary>
@@ -552,7 +602,7 @@ public class ChessPiece : MonoBehaviour
     /// <param name="piece">The name of the piece to promote to.</param>
     public void KingPromote(string piece)
     {
-        Debug.Log(piece + " king promote");
+        //Debug.Log(piece + " king promote");
         UIControl.DisplayAlert(1);
         this.name = piece;
     }
@@ -561,29 +611,26 @@ public class ChessPiece : MonoBehaviour
     /// </summary>
     public void ShowPromoteMenu()
     {
-        po = GameObject.FindWithTag("Promotion Options").transform.Find("Promotion Menu").gameObject;
-        po.SetActive(true);
+        promotionOptions = GameObject.FindWithTag("Promotion Options").transform.Find("Promotion Menu").gameObject;
+        promotionOptions.SetActive(true);
+        void Setup(string promote, Sprite sprite, string promoteTo)
+        {
+            promotionOptions.transform.Find(promote).GetComponent<UnityEngine.UI.Image>().sprite = sprite;
+            promotionOptions.transform.Find(promote).GetComponent<Button>().onClick.AddListener(() => Promote(promoteTo));
+        }
         if (color == "white")
         {
-            po.transform.Find("QueenPromote").GetComponent<UnityEngine.UI.Image>().sprite = white_queen;
-            po.transform.Find("QueenPromote").GetComponent<Button>().onClick.AddListener(() => Promote("white_queen"));
-            po.transform.Find("RookPromote").GetComponent<UnityEngine.UI.Image>().sprite = white_rook;
-            po.transform.Find("RookPromote").GetComponent<Button>().onClick.AddListener(() => Promote("white_rook"));
-            po.transform.Find("BishopPromote").GetComponent<UnityEngine.UI.Image>().sprite = white_bishop;
-            po.transform.Find("BishopPromote").GetComponent<Button>().onClick.AddListener(() => Promote("white_bishop"));
-            po.transform.Find("KnightPromote").GetComponent<UnityEngine.UI.Image>().sprite = white_knight;
-            po.transform.Find("KnightPromote").GetComponent<Button>().onClick.AddListener(() => Promote("white_knight"));
+            Setup("QueenPromote", white_queen, "white_queen");
+            Setup("RookPromote", white_rook, "white_rook");
+            Setup("BishopPromote", white_bishop, "white_bishop");
+            Setup("KnightPromote", white_knight, "white_knight");
         }
         else
         {
-            po.transform.Find("QueenPromote").GetComponent<UnityEngine.UI.Image>().sprite = black_queen;
-            po.transform.Find("QueenPromote").GetComponent<Button>().onClick.AddListener(() => Promote("black_queen"));
-            po.transform.Find("RookPromote").GetComponent<UnityEngine.UI.Image>().sprite = black_rook;
-            po.transform.Find("RookPromote").GetComponent<Button>().onClick.AddListener(() => Promote("black_rook"));
-            po.transform.Find("BishopPromote").GetComponent<UnityEngine.UI.Image>().sprite = black_bishop;
-            po.transform.Find("BishopPromote").GetComponent<Button>().onClick.AddListener(() => Promote("black_bishop"));
-            po.transform.Find("KnightPromote").GetComponent<UnityEngine.UI.Image>().sprite = black_knight;
-            po.transform.Find("KnightPromote").GetComponent<Button>().onClick.AddListener(() => Promote("black_knight"));
+            Setup("QueenPromote", black_queen, "black_queen");
+            Setup("RookPromote", black_rook, "black_rook");
+            Setup("BishopPromote", black_bishop, "black_bishop");
+            Setup("KnightPromote", black_knight, "black_knight");
         }
     }
     public (GameObject left, GameObject right) GetDiagonalPieces(string piece)

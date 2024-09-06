@@ -10,6 +10,7 @@ using UnityEngine.UI;
 public class Controller : MonoBehaviour
 {
     public GameObject chessPiece;
+    [SerializeField]
     private GameObject[,] board = new GameObject[10, 8];
     private GameObject[] playerBlack = new GameObject[16];
     private GameObject[] playerWhite = new GameObject[16];
@@ -20,7 +21,6 @@ public class Controller : MonoBehaviour
     public GameObject flash;
     //Settings
     public Dictionary<string, string> settings = new() { { "flip_board", "false" }, { "showMovePlates", "true" }, { "forceEnPassant", "true" } };
-    public Dictionary<string, int> piecePrices = new() { { "pawn", 3 }, { "rook", 15 }, { "knight", 9 }, { "bishop", 9 }, { "queen", 27 } };
 
     public string currentPlayer = "white";
     public bool gameOver = false;
@@ -40,6 +40,8 @@ public class Controller : MonoBehaviour
     public bool blackCapturedPiece = false;
     public int move = 1;
     public int halfMove = 0;
+    public bool communistRevolutionWhite = false;
+    public bool communistRevolutionBlack = false;
     /// <summary>
     /// Toggles the flip board setting.
     /// </summary>
@@ -68,7 +70,10 @@ public class Controller : MonoBehaviour
         foreach (GameObject piece in board)
         {
             if (piece != null && currentPlayer == "black")
+            {
                 StartCoroutine(MoveObject(piece, ChessPiece.RotateBoard(piece.transform.position), 0.3f));
+                if (piece.GetComponent<ChessPiece>().inJail) piece.GetComponent<ChessPiece>().SetTransform();
+            }
         }
         foreach (GameObject movePlate in GameObject.FindGameObjectsWithTag("MovePlate"))
         {
@@ -114,7 +119,7 @@ public class Controller : MonoBehaviour
     /// <returns>The newly created game object.</returns>
     public GameObject Create(string name, int x, int y)
     {
-        GameObject obj = Instantiate(chessPiece, new Vector3(x - 3.5f, y - 3.5f, -1.0f), Quaternion.identity);
+        GameObject obj = Instantiate(chessPiece, new Vector3(x - 3.5f, y - 3.5f, -0.9f), Quaternion.identity);
         ChessPiece cp = obj.GetComponent<ChessPiece>();
         cp.name = name;
         cp.Position = new Vector2Int(x, y);
@@ -196,7 +201,7 @@ public class Controller : MonoBehaviour
         catchGukesh = false;
         if (anishMovePlate != null) // Destroy the anish move plate and the stolen pawn
         {
-            Debug.Log(anishValidWhite + " " + anishValidBlack + " " + (currentPlayer == "white" ? anishValidWhite : anishValidBlack));
+            //Debug.Log("Anish mode valid white: " + anishValidWhite + " black: " + anishValidBlack + " current player: " + (currentPlayer == "white" ? anishValidWhite : anishValidBlack));
             if (currentPlayer == "white") anishValidWhite = false;
             else anishValidBlack = false;
             RemovePieceAt(anishMovePlate.GetComponent<MovePlate>().position);
@@ -204,16 +209,17 @@ public class Controller : MonoBehaviour
             catchGukesh = true;
         }
         this.currentPlayer = (this.currentPlayer == "white") ? "black" : "white"; // Change player
-        ChessPiece.DestroyMovePlates(true); // Destroy all move plates, even move indicators
-        Debug.Log("white " + gukeshValidWhite + " black " + gukeshValidBlack + " " + (currentPlayer == "white" ? gukeshValidWhite : gukeshValidBlack));
+        ChessPiece.DestroyMovePlates(true, false, true); // Destroy all move plates, even move indicators
+        //Debug.Log("Gukesh valid white " + gukeshValidWhite + " black " + gukeshValidBlack + " current player " + (currentPlayer == "white" ? gukeshValidWhite : gukeshValidBlack));
         if (currentPlayer == "white" ? gukeshValidWhite : gukeshValidBlack) uiControl.ChangeGukeshButton(true);
         else uiControl.ChangeGukeshButton(false);
         if (currentPlayer == "white" ? anishValidWhite : anishValidBlack) uiControl.ChangeAnishButton(true, false);
         else uiControl.ChangeAnishButton(false, false);
         if (currentPlayer == "white") move++;
-        if ((currentPlayer == "white" ? whitePawnsLost : blackPawnsLost) >= 3) CommunistRevolution();
+        if ((currentPlayer == "white" ? whitePawnsLost : blackPawnsLost) >= 3 && !(currentPlayer == "white" ? communistRevolutionWhite : communistRevolutionBlack)) CommunistRevolution();
         religion.NextTurn();
         uiControl.UpdateMoveCounter();
+        uiControl.ChangePlayerIndicator();
         foreach (GameObject piece in board) //Go through all pieces
         {
             if (piece != null)
@@ -327,13 +333,13 @@ public class Controller : MonoBehaviour
             }
         }
         uiControl.UpdateEnjoymentCounter(); //update the enjoyment counter on the screen
-        Debug.Log(PositionToFEN());
+        //Debug.Log("FEN of current position: " + PositionToFEN());
     }
     public void RemovePieceAt(Vector2Int position)
     {
         if (board[position.x, position.y] != null)
         {
-            Debug.Log(board[position.x, position.y].name);
+            //Debug.Log("Removing piece at " + board[position.x, position.y].name);
             Destroy(board[position.x, position.y]);
         }
         SetPositionEmpty(position.x, position.y);
@@ -384,14 +390,7 @@ public class Controller : MonoBehaviour
     }
     IEnumerator WaitForNextTurn(float seconds)
     {
-        //Print the time of when the function is first called.
-        Debug.Log("Started Coroutine at timestamp : " + Time.time);
-
-        //yield on a new YieldInstruction that waits for 5 seconds.
         yield return new WaitForSeconds(seconds);
-
-        //After we have waited 5 seconds print the time again.
-        Debug.Log("Finished Coroutine at timestamp : " + Time.time);
         NextTurn();
     }
     /// <summary>
@@ -400,14 +399,13 @@ public class Controller : MonoBehaviour
     /// <param name="piece">The name of the piece to impregnate the queen with.</param>
     public void ImpregnateQueen(string piece)
     {
+        Dictionary<string, int> piecePrices = new() { { "pawn", 3 }, { "rook", 15 }, { "knight", 9 }, { "bishop", 9 }, { "queen", 27 }, { "knook", religion.GetReligions(currentPlayer).Contains("Knook") ? 12 : 24 }, { "church", 24 } };
         // Check if the current player has enough funds to impregnate the queen
         if ((currentPlayer == "white" ? whiteEnjoyment : blackEnjoyment) >= piecePrices[piece])
         {
-            // Log the price of the piece and the current player's enjoyment
-            Debug.Log(piecePrices[piece]);
-            Debug.Log(currentPlayer == "white" ? whiteEnjoyment : blackEnjoyment);
+            //Debug.Log("Price of piece: " + piecePrices[piece]);
+            //Debug.Log("Current enjoyment: " + currentPlayer == "white" ? whiteEnjoyment : blackEnjoyment);
 
-            // Disable the shop button and shop UI
             uiControl.ChangeShopButton(false);
             uiControl.ChangeShop(false);
 
@@ -418,39 +416,37 @@ public class Controller : MonoBehaviour
                 ChessPiece cp = chessPiece.GetComponent<ChessPiece>();
                 if (cp.name == currentPlayer + "_queen" && (cp.CheckKing(cp.Position.x + 1, cp.Position.y, cp.color) || cp.CheckKing(cp.Position.x - 1, cp.Position.y, cp.color) || cp.CheckKing(cp.Position.x, cp.Position.y + 1, cp.color) || cp.CheckKing(cp.Position.x, cp.Position.y - 1, cp.color)) && cp.daysPregnant == 0)
                 {
-                    // Set the queen to be pregnant with the given piece
                     cp.pregnantWith = piece;
-                    // Change the color of the queen's sprite to indicate pregnancy
                     chessPiece.GetComponent<SpriteRenderer>().color = new Color(1.0f, 1.0f, 1.0f, 0.6f);
                     break;
                 }
             }
 
-            // Deduct the price of the piece from the current player's enjoyment
             if (currentPlayer == "white") whiteEnjoyment -= piecePrices[piece];
             else blackEnjoyment -= piecePrices[piece];
-
-            // Update the enjoyment counter UI
             uiControl.UpdateEnjoymentCounter();
         }
         else
         {
-            // Log a message indicating that the current player does not have enough funds
-            Debug.Log("not enough funds");
+            //Debug.Log("Not enough funds to purchase piece");
         }
     }
     public void CommunistRevolution()
     {
         uiControl.CommunistRevolution(currentPlayer);
+        if (currentPlayer == "white")
+            communistRevolutionWhite = true;
+        else
+            communistRevolutionBlack = true;
         foreach (GameObject piece in board)
         {
             if (piece != null && piece.GetComponent<ChessPiece>().color == currentPlayer)
             {
                 if (piece.GetComponent<ChessPiece>().isKing)
                 {
-                    Debug.Log(name);
+                    //Debug.Log(name);
                     piece.name = currentPlayer + "_lenin";
-                    Debug.Log(piece.name);
+                    //Debug.Log(piece.name);
                     piece.GetComponent<ChessPiece>().Activate(piece);
                     return;
                 }
@@ -501,7 +497,7 @@ public class Controller : MonoBehaviour
     }
     public void Restart()
     {
-        Debug.Log("Restart");
+        //Debug.Log("Restart");
         gameOver = false;
         SceneManager.LoadScene("Game");
     }
@@ -554,7 +550,7 @@ public class Controller : MonoBehaviour
     public void GameOver(string winner)
     {
         gameOver = true;
-        Debug.Log("Winner: " + winner);
+        //Debug.Log("Winner: " + winner);
         if (!(winner == "white" ? whiteCapturedPiece : blackCapturedPiece))
         {
             uiControl.TrueEnding();
@@ -708,14 +704,68 @@ public class Controller : MonoBehaviour
         {
             if (piece != null && piece.name.Contains("pawn") && piece.GetComponent<ChessPiece>().color == currentPlayer)
             {
-                Debug.Log(name);
+                //Debug.Log(name);
                 piece.name = currentPlayer + "_" + name;
-                Debug.Log(piece.name);
+                //Debug.Log(piece.name);
                 piece.GetComponent<ChessPiece>().Activate(piece);
                 numRolls++;
                 break;
             }
         }
         if (numRolls == 5) uiControl.ChangeD20UpgradeOK(true);
+    }
+    public GameObject[] GetCurrentPlayerPieces()
+    {
+        List<GameObject> pieces = new List<GameObject>();
+        foreach (GameObject piece in board)
+        {
+            if (piece == null) continue;
+            if (piece.GetComponent<ChessPiece>().color == currentPlayer)
+            {
+                pieces.Add(piece);
+            }
+        }
+        return pieces.ToArray();
+    }
+    public void SendPieceToJail(string pieceName, bool king)
+    {
+        foreach (GameObject piece in board)
+        {
+            if (piece == null) continue;
+            if (((piece.GetComponent<ChessPiece>().isKing && king) || piece.GetComponent<ChessPiece>().name == pieceName) && piece.GetComponent<ChessPiece>().color == currentPlayer)
+            {
+                if (GetPosition(0, 0) != null)
+                {
+                    GetPosition(0, 0).GetComponent<ChessPiece>().Position = piece.GetComponent<ChessPiece>().Position;
+                    SetPosition(GetPosition(0, 0));
+                    if (GetPosition(0, 0).GetComponent<ChessPiece>().inJail)
+                    {
+                        GetPosition(0, 0).GetComponent<ChessPiece>().inJail = false;
+                        GetPosition(0, 0).GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, 1);
+                    }
+                    GetPosition(0, 0).GetComponent<ChessPiece>().FlipBoardFix();
+                }
+                piece.GetComponent<ChessPiece>().Position = new Vector2Int(0, 0);
+                piece.GetComponent<SpriteRenderer>().color = new Color(1, 0.5f, 0, 1);
+                piece.GetComponent<ChessPiece>().inJail = true;
+                piece.GetComponent<ChessPiece>().FlipBoardFix();
+                SetPosition(piece);
+            }
+        }
+    }
+
+    public static bool Condition(string condition)
+    {
+        Controller controller = GameObject.FindGameObjectWithTag("GameController").GetComponent<Controller>();
+        Religion religion = GameObject.FindGameObjectWithTag("Religion").GetComponent<Religion>();
+        bool result = true;
+        if (condition.Contains("religion"))
+        {
+            //Debug.Log(condition.Split('_')[1]);
+            //Debug.Log(religion.GetReligions(controller.currentPlayer).Contains(condition.Split('_')[1]));
+            result = religion.GetReligions(controller.currentPlayer).Contains(condition.Split('_')[1]);
+        }
+        if (condition != "" && condition[0] == '!') result = !result;
+        return result;
     }
 }

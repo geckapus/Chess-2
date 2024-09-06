@@ -36,6 +36,11 @@ public class MovePlate : MonoBehaviour
             gameObject.transform.position = new Vector3(gameObject.transform.position.x, gameObject.transform.position.y, 0.5f);
             gameObject.GetComponent<SpriteRenderer>().color = new Color(1.0f, 1.0f, 0.0f, 1.0f);
         }
+        if (indicator == "ai")
+        {
+            gameObject.transform.position = new Vector3(gameObject.transform.position.x, gameObject.transform.position.y, 0.5f);
+            gameObject.GetComponent<SpriteRenderer>().color = new Color(0.0f, 0.0f, 1.0f, 1.0f);
+        }
         if (indicator != null && indicator.Contains("fuse"))
         {
             gameObject.GetComponent<SpriteRenderer>().color = new Color(1.0f, 0.0f, 1.0f, 1.0f);
@@ -74,8 +79,13 @@ public class MovePlate : MonoBehaviour
             sc.halfMove += 1;
             if (capturing)
             {
-                Debug.Log("capturing: " + capturing);
+                //Debug.Log("capturing: " + capturing);
                 GameObject cp = sc.GetPosition(position.x, position.y);
+                if (sc.PositionOnVacation(position.x, position.y))
+                {
+                    sc.SendPieceToJail("", true);
+                    uiControl.CreateAlert("Rule 16 & Rule 20", "Stealing a pawn in vacation is considered a war crime by the Geneva Convention, war crimes are punished as said in rule 20. If you commit a war crime, you go directly to jail. DO NOT PASS GO, DO NOT COLLECT $200. Your king will swap places with the piece on a1.");
+                }
                 if (cp.GetComponent<ChessPiece>().color == "white") sc.whiteCapturedPiece = true;
                 else sc.blackCapturedPiece = true;
                 if (cp.GetComponent<ChessPiece>().isKing)
@@ -84,13 +94,13 @@ public class MovePlate : MonoBehaviour
                     if (roll == 20)
                     {
                         uiControl.ChangeSavingThrow(true, roll, "Natural 20! Killing all checking pieces.");
-                        Debug.Log("Natural 20! Killing all checking pieces.");
+                        //Debug.Log("Natural 20! Killing all checking pieces.");
                         cp = rf.gameObject;
                     }
                     else if (roll >= 15)
                     {
                         uiControl.ChangeSavingThrow(true, roll, "Saving throw succeeded! You get an extra move to escape checkmate.");
-                        Debug.Log("Saving throw succeeded! Escaping checkmate.");
+                        //Debug.Log("Saving throw succeeded! Escaping checkmate.");
                         sc.NextTurn();
                         return;
                     }
@@ -98,7 +108,7 @@ public class MovePlate : MonoBehaviour
                     {
                         sc.gameOver = true;
                         uiControl.ChangeSavingThrow(true, roll, "Saving throw failed. Checkmate stands.");
-                        Debug.Log("Saving throw failed. Checkmate stands. starting coroutine.");
+                        //Debug.Log("Saving throw failed. Checkmate stands. starting coroutine.");
                     }
                 }
                 else if (cp.name.Contains("enPassant"))
@@ -119,9 +129,9 @@ public class MovePlate : MonoBehaviour
                 }
                 uiControl.UpdatePawnsLostCounter();
                 sc.RemovePieceAt(position);
-                if (indicator == "fuse_church")
+                if (indicator != null && indicator.Contains("fuse"))
                 {
-                    rf.name = rf.color + "_church";
+                    rf.name = rf.color + indicator[indicator.IndexOf("_")..];
                     rf.Activate(rf.gameObject);
                 }
                 sc.halfMove = 0;
